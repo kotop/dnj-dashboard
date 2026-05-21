@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Прототип дашбордов Ассоциации Добро.рф</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f0f4f8; color: #1a202c; }
+  
+  /* Навигация */
+  .nav { background: linear-gradient(135deg, #1a3a6c 0%, #2c5282 100%); color: white; padding: 12px 24px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .nav-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+  .nav-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .nav-tab { padding: 6px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; font-size: 12px; color: white; transition: all 0.2s; }
+  .nav-tab:hover { background: rgba(255,255,255,0.25); }
+  .nav-tab.active { background: #f6ad55; color: #1a202c; font-weight: bold; }
+  
+  /* Контейнер */
+  .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+  .dashboard { display: none; }
+  .dashboard.active { display: block; }
+  
+  /* Заголовок дашборда */
+  .dash-header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .dash-header h1 { margin: 0 0 8px 0; color: #1a3a6c; font-size: 22px; }
+  .dash-header .subtitle { color: #718096; font-size: 13px; }
+  .dash-header .updated { float: right; color: #38a169; font-size: 12px; }
+  
+  /* Фильтры */
+  .filters { background: white; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .filter-group { display: flex; flex-direction: column; }
+  .filter-group label { font-size: 11px; color: #718096; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+  .filter-group select, .filter-group input { padding: 6px 10px; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 13px; background: white; }
+  
+  /* Сетка карточек */
+  .grid { display: grid; gap: 16px; margin-bottom: 16px; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-5 { grid-template-columns: repeat(5, 1fr); }
+  
+  /* Карточка цели на главном дашборде */
+  .goal-card { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-left: 4px solid #cbd5e0; }
+  .goal-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .goal-card.green { border-left-color: #38a169; }
+  .goal-card.yellow { border-left-color: #ed8936; }
+  .goal-card.red { border-left-color: #e53e3e; }
+  .goal-card .num { font-size: 11px; color: #718096; font-weight: bold; }
+  .goal-card .title { font-size: 13px; font-weight: 600; margin: 4px 0 8px 0; color: #1a202c; min-height: 32px; }
+  .goal-card .value { font-size: 24px; font-weight: bold; color: #2c5282; }
+  .goal-card .target { font-size: 11px; color: #718096; }
+  .goal-card .progress { background: #edf2f7; height: 8px; border-radius: 4px; margin: 8px 0; overflow: hidden; }
+  .goal-card .progress-bar { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .goal-card .progress-bar.green { background: linear-gradient(90deg, #38a169, #48bb78); }
+  .goal-card .progress-bar.yellow { background: linear-gradient(90deg, #ed8936, #f6ad55); }
+  .goal-card .progress-bar.red { background: linear-gradient(90deg, #e53e3e, #fc8181); }
+  .goal-card .leader { font-size: 11px; color: #718096; margin-top: 6px; }
+  .goal-card .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; margin-left: 6px; }
+  .status-badge.green { background: #c6f6d5; color: #22543d; }
+  .status-badge.yellow { background: #feebc8; color: #7b341e; }
+  .status-badge.red { background: #fed7d7; color: #742a2a; }
+  
+  /* KPI карточка */
+  .kpi-card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .kpi-card .label { font-size: 11px; color: #718096; text-transform: uppercase; font-weight: 600; }
+  .kpi-card .value { font-size: 28px; font-weight: bold; color: #2c5282; margin: 4px 0; }
+  .kpi-card .delta { font-size: 12px; color: #38a169; }
+  .kpi-card .delta.negative { color: #e53e3e; }
+  
+  /* Виджет графика */
+  .widget { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .widget h3 { margin: 0 0 12px 0; font-size: 14px; color: #1a3a6c; }
+  .widget .chart-container { position: relative; height: 280px; }
+  .widget.tall .chart-container { height: 380px; }
+  
+  /* Bullet chart */
+  .bullet { padding: 8px 0; }
+  .bullet-bar { position: relative; height: 28px; background: #edf2f7; border-radius: 4px; overflow: visible; }
+  .bullet-range { position: absolute; height: 100%; background: rgba(56, 161, 105, 0.15); }
+  .bullet-fill { position: absolute; height: 100%; background: linear-gradient(90deg, #2c5282, #4299e1); border-radius: 4px; }
+  .bullet-marker { position: absolute; width: 3px; height: 36px; top: -4px; background: #e53e3e; }
+  .bullet-label { font-size: 11px; color: #718096; margin-top: 4px; display: flex; justify-content: space-between; }
+  
+  /* Таблица */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #edf2f7; padding: 8px; text-align: left; font-weight: 600; color: #4a5568; border-bottom: 2px solid #cbd5e0; }
+  td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+  tr:hover { background: #f7fafc; }
+  .region-zone { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+  .zone-X { background: #bee3f8; color: #2c5282; }
+  .zone-Y { background: #fbd38d; color: #7b341e; }
+  .zone-Z { background: #e9d8fd; color: #553c9a; }
+  
+  /* Светофор */
+  .light-green { color: #38a169; font-weight: bold; }
+  .light-yellow { color: #ed8936; font-weight: bold; }
+  .light-red { color: #e53e3e; font-weight: bold; }
+  
+  /* Карта-плейсхолдер */
+  .map-placeholder { background: linear-gradient(135deg, #e6f2ff 0%, #c5d9ec 100%); height: 320px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #2c5282; font-size: 14px; flex-direction: column; padding: 20px; }
+  .map-placeholder .legend { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; justify-content: center; }
+  .map-placeholder .legend span { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+  .map-placeholder .dot { width: 10px; height: 10px; border-radius: 50%; }
+  
+  /* 8 индикаторов цели 6.1 */
+  .indicator-list { display: flex; flex-direction: column; gap: 10px; }
+  .indicator-row { display: flex; align-items: center; gap: 10px; padding: 8px; background: #f7fafc; border-radius: 4px; }
+  .indicator-name { flex: 1; font-size: 12px; }
+  .indicator-bar { flex: 2; height: 16px; background: #edf2f7; border-radius: 3px; overflow: hidden; }
+  .indicator-fill { height: 100%; border-radius: 3px; }
+  .indicator-value { width: 50px; text-align: right; font-weight: 600; font-size: 12px; }
+  .indicator-weight { font-size: 10px; color: #718096; width: 40px; }
+  
+  /* Направления */
+  .direction-card { background: white; padding: 14px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-top: 4px solid #4299e1; }
+  .direction-card .name { font-size: 13px; font-weight: 600; color: #1a3a6c; }
+  .direction-card .goals { font-size: 11px; color: #718096; margin: 4px 0; }
+  .direction-card .agg { font-size: 22px; font-weight: bold; color: #2c5282; }
+  
+  /* Бейдж */
+  .badge { display: inline-block; padding: 2px 8px; background: #4299e1; color: white; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  
+  /* Drill-down подсказка */
+  .drill-hint { background: #fffaf0; border-left: 4px solid #f6ad55; padding: 10px 14px; font-size: 12px; color: #7b341e; border-radius: 4px; margin-bottom: 16px; }
+  
+  .section-title { font-size: 16px; color: #1a3a6c; margin: 20px 0 12px 0; padding-left: 8px; border-left: 4px solid #4299e1; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-title">📊 Прототип системы дашбордов Ассоциации Добро.рф</div>
+  <div class="nav-tabs" id="navTabs">
+    <div class="nav-tab active" onclick="showDash('main')">🏠 Главный</div>
+    <div class="nav-tab" onclick="showDash('g11')">Цель 1.1 — Пользователи ЕИС</div>
+    <div class="nav-tab" onclick="showDash('g21')">Цель 2.1 — Активные польз.</div>
+    <div class="nav-tab" onclick="showDash('g31')">Цель 3.1 — Бренд</div>
+    <div class="nav-tab" onclick="showDash('g41')">Цель 4.1 — СО НКО</div>
+    <div class="nav-tab" onclick="showDash('g42')">Цель 4.2 — Образ. орг.</div>
+    <div class="nav-tab" onclick="showDash('g51')">Цель 5.1 — Регионы</div>
+    <div class="nav-tab" onclick="showDash('g61')">Цель 6.1 — Инфраструктура</div>
+    <div class="nav-tab" onclick="showDash('g71')">Цель 7.1 — Внебюджет</div>
+    <div class="nav-tab" onclick="showDash('g81')">Цель 8.1 — Вовлеч.</div>
+    <div class="nav-tab" onclick="showDash('g91')">Цель 9.1 — Dobro.org</div>
+    <div class="nav-tab" onclick="showDash('dept')">🏢 Департамент (пример)</div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ===== ГЛАВНЫЙ ДАШБОРД ===== -->
+<div class="dashboard active" id="main">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 25.11.2025 02:13 МСК</span>
+    <h1>Витрина стратегических целей Ассоциации Добро.рф</h1>
+    <div class="subtitle">Сводный мониторинг достижения целей 2026 и 2030 годов · 9 стратегических целей · 5 направлений</div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group"><label>Год</label><select><option>2026</option><option>2025</option><option>2027</option></select></div>
+    <div class="filter-group"><label>Локация</label><select><option>Российская Федерация</option><option>ЦФО</option><option>ПФО</option><option>СЗФО</option></select></div>
+    <div class="filter-group"><label>Направление</label><select><option>Все направления</option><option>Выбор человека</option><option>Платформа развития</option><option>Партнёр государства</option><option>Зрелая организация</option><option>Международное развитие</option></select></div>
+    <div class="filter-group"><label>Период</label><input type="month" value="2026-11"></div>
+  </div>
+
+  <div class="drill-hint">💡 Кликните на карточку любой цели для перехода к детализированной витрине</div>
+
+  <h2 class="section-title">Стратегические направления</h2>
+  <div class="grid grid-5">
+    <div class="direction-card"><div class="name">Выбор человека</div><div class="goals">Цели 1, 2, 3</div><div class="agg">71%</div></div>
+    <div class="direction-card"><div class="name">Платформа развития</div><div class="goals">Цель 4</div><div class="agg">64%</div></div>
+    <div class="direction-card"><div class="name">Партнёр государства</div><div class="goals">Цели 5, 6</div><div class="agg">58%</div></div>
+    <div class="direction-card"><div class="name">Зрелая организация</div><div class="goals">Цели 7, 8</div><div class="agg">82%</div></div>
+    <div class="direction-card"><div class="name">Международное развитие</div><div class="goals">Цель 9</div><div class="agg">47%</div></div>
+  </div>
+
+  <h2 class="section-title">Цели 2026 года</h2>
+  <div class="grid grid-3" id="goalCards"></div>
+
+  <h2 class="section-title">Сводная таблица показателей</h2>
+  <div class="widget">
+    <table>
+      <thead><tr><th>Цель</th><th>Лидер</th><th>Ед.</th><th>Старт</th><th>Нижн.</th><th>План 2026</th><th>Верх.</th><th>Факт</th><th>% выполн.</th><th>Статус</th></tr></thead>
+      <tbody id="summaryTable"></tbody>
+    </table>
+  </div>
+
+  <h2 class="section-title">Карта России — агрегированный индекс достижения целей по регионам</h2>
+  <div class="widget">
+    <div class="map-placeholder">
+      <div style="font-size: 48px;">🗺️</div>
+      <div>Интерактивная картограмма РФ</div>
+      <div style="font-size: 11px; margin-top: 6px;">При наведении: регион, индекс, место в рейтинге · При клике: детализация</div>
+      <div class="legend">
+        <span><span class="dot" style="background:#38a169"></span>Зелёная зона: 25 регионов</span>
+        <span><span class="dot" style="background:#ed8936"></span>Жёлтая зона: 41 регион</span>
+        <span><span class="dot" style="background:#e53e3e"></span>Красная зона: 23 региона</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 1.1 ===== -->
+<div class="dashboard" id="g11">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 25.11.2025</span>
+    <h1>Цель 1.1 — Пользователи ЕИС Добро.рф</h1>
+    <div class="subtitle">Накопительным итогом · Лидер: А. Пысин · Периодичность: ежедневно · Источник: ЕИС Добро.рф</div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group"><label>Год</label><select><option>2026</option></select></div>
+    <div class="filter-group"><label>Локация</label><select><option>Российская Федерация</option></select></div>
+    <div class="filter-group"><label>Тип ПД</label><select><option>Все типы (25)</option></select></div>
+    <div class="filter-group"><label>Возраст</label><select><option>Все возрасты</option><option>14-35</option></select></div>
+    <div class="filter-group"><label>Пол</label><select><option>Все</option><option>М</option><option>Ж</option></select></div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Факт (накопит.)</div><div class="value">5,28 млн</div><div class="delta">▲ +680 тыс. с янв.2026</div></div>
+    <div class="kpi-card"><div class="label">План 2026</div><div class="value">6,5 млн</div><div class="delta">Нижн. 6,1 · Верх. 6,9 млн</div></div>
+    <div class="kpi-card"><div class="label">% выполнения</div><div class="value">81,2%</div><div class="delta">🟡 Жёлтая зона</div></div>
+    <div class="kpi-card"><div class="label">К плану 2030</div><div class="value">26,4%</div><div class="delta">План 20 млн</div></div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>Прогресс достижения цели (bullet chart)</h3>
+    <div class="bullet">
+      <div class="bullet-bar">
+        <div class="bullet-range" style="left:66%; width:11.5%"></div>
+        <div class="bullet-fill" style="width:76.5%"></div>
+        <div class="bullet-marker" style="left:94.2%"></div>
+      </div>
+      <div class="bullet-label">
+        <span>Старт: 4,6 млн</span><span>Нижн: 6,1</span><span style="color:#2c5282;font-weight:bold">Факт: 5,28</span><span>План: 6,5</span><span>Верх: 6,9 млн</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Динамика накопительного числа пользователей по месяцам</h3><div class="chart-container"><canvas id="g11_line"></canvas></div></div>
+    <div class="widget"><h3>Прирост пользователей (год к году)</h3><div class="chart-container"><canvas id="g11_bar"></canvas></div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Декомпозиция по типам полезных действий (топ-10)</h3><div class="chart-container"><canvas id="g11_pd"></canvas></div></div>
+    <div class="widget"><h3>Структура аудитории</h3><div class="chart-container"><canvas id="g11_age"></canvas></div></div>
+  </div>
+
+  <div class="grid grid-3" style="margin-top:16px">
+    <div class="kpi-card"><div class="label">14-35 с Госуслугами</div><div class="value">1,18 млн</div><div class="delta">План 1,31 млн (90%)</div></div>
+    <div class="kpi-card"><div class="label">% от населения 14-35</div><div class="value">3,29%</div><div class="delta">План 3,66%</div></div>
+    <div class="kpi-card"><div class="label">«Помогающие практики»</div><div class="value">2,87 млн</div><div class="delta">План 3,3 млн</div></div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>Рейтинг регионов</h3>
+    <table>
+      <thead><tr><th>Регион</th><th>Категория</th><th>ФО</th><th>Старт 2025</th><th>План 2026</th><th>Факт</th><th>% выполн.</th><th>Место в кат.</th><th>Статус</th></tr></thead>
+      <tbody id="g11_regions"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 2.1 ===== -->
+<div class="dashboard" id="g21">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 25.11.2025</span>
+    <h1>Цель 2.1 — Среднемесячные активные пользователи</h1>
+    <div class="subtitle">Лидер: И. Погорелов · Периодичность: ежедневно · Источник: ЕИС Добро.рф</div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group"><label>Год</label><select><option>2026</option><option>2025</option></select></div>
+    <div class="filter-group"><label>Локация</label><select><option>Российская Федерация</option><option>ЦФО</option></select></div>
+    <div class="filter-group"><label>Режим</label><select><option>Цель 2: ЮЛ и ФЛ</option><option>Цель 2: только ЮЛ</option><option>Цель 2: только ФЛ</option><option>Лояльные: ЮЛ и ФЛ</option></select></div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Среднемес. активные (Цель 2.1)</div><div class="value">0,42 млн</div><div class="delta">84% от плана 0,5 млн</div></div>
+    <div class="kpi-card"><div class="label">Лояльные (3+ ПД, индикатор)</div><div class="value">0,67 млн</div><div class="delta">84% от плана 0,8 млн</div></div>
+    <div class="kpi-card"><div class="label">Статус</div><div class="value light-yellow">🟡</div><div class="delta">Жёлтая зона</div></div>
+    <div class="kpi-card"><div class="label">К плану 2030</div><div class="value">21,0%</div><div class="delta">План 2 млн</div></div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>Помесячная динамика активных пользователей (текущий год vs предыдущий)</h3>
+    <div class="chart-container"><canvas id="g21_bar"></canvas></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget tall">
+      <h3>Полезные действия ФЛ × Когорты</h3>
+      <div style="overflow:auto; max-height:380px">
+        <table>
+          <thead><tr><th>Тип ПД</th><th>Все</th><th>Лояльные</th><th>14-35</th><th>18-23</th><th>24-35</th><th>М</th><th>Ж</th></tr></thead>
+          <tbody id="g21_fl"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="widget tall">
+      <h3>Полезные действия ЮЛ × Когорты</h3>
+      <div style="overflow:auto; max-height:380px">
+        <table>
+          <thead><tr><th>Тип ПД</th><th>Все</th><th>Лояльные</th><th>НКО</th><th>Вуз</th><th>Школа</th><th>СПО</th><th>Коммерч.</th></tr></thead>
+          <tbody id="g21_ul"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>Рейтинг федеральных округов</h3>
+    <table>
+      <thead><tr><th>ФО</th><th>Активных польз.</th><th>% от плана</th><th>Лояльных</th><th>Динамика YoY</th><th>Статус</th></tr></thead>
+      <tbody>
+        <tr><td>ЦФО</td><td>118 540</td><td>92%</td><td>184 200</td><td class="light-green">▲ +18%</td><td class="light-green">🟢</td></tr>
+        <tr><td>ПФО</td><td>74 230</td><td>85%</td><td>119 800</td><td class="light-green">▲ +14%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>СЗФО</td><td>52 100</td><td>83%</td><td>87 400</td><td class="light-green">▲ +11%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>ЮФО</td><td>48 920</td><td>80%</td><td>76 300</td><td class="light-green">▲ +9%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>СФО</td><td>41 350</td><td>78%</td><td>68 200</td><td class="light-green">▲ +7%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>УФО</td><td>34 600</td><td>76%</td><td>54 100</td><td class="light-green">▲ +6%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>СКФО</td><td>28 400</td><td>72%</td><td>44 800</td><td class="light-yellow">▲ +4%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>ДФО</td><td>21 860</td><td>68%</td><td>34 200</td><td class="light-yellow">▲ +3%</td><td class="light-red">🔴</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 3.1 ===== -->
+<div class="dashboard" id="g31">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 30.09.2025 (Q3)</span>
+    <h1>Цель 3.1 — Узнаваемость бренда Добро.рф</h1>
+    <div class="subtitle">Лидер: А. Назаров · Периодичность: ежеквартально · Источник: ВЦИОМ</div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Узнаваемость бренда</div><div class="value">47%</div><div class="delta">План 2026: 50% (94%)</div></div>
+    <div class="kpi-card"><div class="label">Доверие среди знакомых</div><div class="value">82%</div><div class="delta">План ≥75% ✓</div></div>
+    <div class="kpi-card"><div class="label">MAU сайта</div><div class="value">1,68 млн</div><div class="delta">План 2 млн (84%)</div></div>
+    <div class="kpi-card"><div class="label">MAU моб. приложения</div><div class="value">228 тыс.</div><div class="delta">План 250 тыс. (91%)</div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Динамика узнаваемости и доверия</h3><div class="chart-container"><canvas id="g31_line"></canvas></div></div>
+    <div class="widget"><h3>Подписчики экосистемы по соцсетям</h3><div class="chart-container"><canvas id="g31_subs"></canvas></div></div>
+  </div>
+
+  <div class="grid grid-3" style="margin-top:16px">
+    <div class="kpi-card"><div class="label">Подписчики экосистемы</div><div class="value">512 380</div><div class="delta">План 600 000 (85%)</div></div>
+    <div class="kpi-card"><div class="label">Выходы в СМИ</div><div class="value">102 400</div><div class="delta">План 120 000 (85%)</div></div>
+    <div class="kpi-card"><div class="label">Упоминания в соцсетях</div><div class="value">1,28 млн</div><div class="delta">План 1,5 млн (85%)</div></div>
+    <div class="kpi-card"><div class="label">Контент-центр (единиц)</div><div class="value">168 200</div><div class="delta">План 200 000 (84%)</div></div>
+    <div class="kpi-card"><div class="label">OR по цепочкам</div><div class="value">7,8%</div><div class="delta">План 10%</div></div>
+    <div class="kpi-card"><div class="label">Медиалогия</div><div class="value">Топ-18</div><div class="delta">Цель: Топ-15</div></div>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 4.1 ===== -->
+<div class="dashboard" id="g41">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 25.11.2025</span>
+    <h1>Цель 4.1 — Доля СО НКО, использующих сервисы</h1>
+    <div class="subtitle">Лидер: А. Пысин · Источник: реестр СОНКО Минэка + ЕИС Добро.рф</div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Доля СО НКО</div><div class="value">9,2%</div><div class="delta">План 10,5% (88%)</div></div>
+    <div class="kpi-card"><div class="label">Абс. число</div><div class="value">6 440</div><div class="delta">План 7 350</div></div>
+    <div class="kpi-card"><div class="label">Всего в реестре</div><div class="value">70 000</div><div class="delta">База расчёта</div></div>
+    <div class="kpi-card"><div class="label">Статус</div><div class="value light-yellow">🟡</div><div class="delta">Жёлтая зона</div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Помесячная динамика доли СО НКО</h3><div class="chart-container"><canvas id="g41_line"></canvas></div></div>
+    <div class="widget"><h3>Распределение СО НКО по зонам светофора</h3><div class="chart-container"><canvas id="g41_pie"></canvas></div></div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>Рейтинг регионов (фрагмент)</h3>
+    <table>
+      <thead><tr><th>Регион</th><th>Всего СО НКО</th><th>Активных в ЕИС</th><th>%</th><th>План</th><th>Факт</th><th>Статус</th></tr></thead>
+      <tbody>
+        <tr><td>г. Москва</td><td>8 420</td><td>1 168</td><td>13,9%</td><td>10,5%</td><td>13,9%</td><td class="light-green">🟢</td></tr>
+        <tr><td>Республика Татарстан</td><td>2 180</td><td>278</td><td>12,8%</td><td>10,5%</td><td>12,8%</td><td class="light-green">🟢</td></tr>
+        <tr><td>г. Санкт-Петербург</td><td>4 100</td><td>485</td><td>11,8%</td><td>10,5%</td><td>11,8%</td><td class="light-green">🟢</td></tr>
+        <tr><td>Краснодарский край</td><td>2 360</td><td>241</td><td>10,2%</td><td>10,5%</td><td>10,2%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>Свердловская область</td><td>2 050</td><td>189</td><td>9,2%</td><td>10,5%</td><td>9,2%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>Республика Дагестан</td><td>1 380</td><td>89</td><td>6,4%</td><td>10,5%</td><td>6,4%</td><td class="light-red">🔴</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="kpi-card"><div class="label">Компании, рег. использующие платформу</div><div class="value">582</div><div class="delta">План 700 (83%)</div></div>
+    <div class="kpi-card"><div class="label">Корпоративных волонтёров</div><div class="value">214 800</div><div class="delta">План 270 000 (80%)</div></div>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 4.2 ===== -->
+<div class="dashboard" id="g42">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 25.11.2025</span>
+    <h1>Цель 4.2 — Доля образовательных организаций</h1>
+    <div class="subtitle">Лидер: Д. Варанкин · Источник: Минобрнауки, Минпросвещения, ЕИС Добро.рф</div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group"><label>Тип ОО</label><select><option>Все</option><option>Школа</option><option>СПО</option><option>Вуз</option></select></div>
+    <div class="filter-group"><label>Локация</label><select><option>Российская Федерация</option></select></div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Общая доля ОО</div><div class="value">7,3%</div><div class="delta">План 8,52% (86%)</div></div>
+    <div class="kpi-card"><div class="label">Школы</div><div class="value">6,5%</div><div class="delta">План 7,79% · 2 502 шт.</div></div>
+    <div class="kpi-card"><div class="label">СПО</div><div class="value">10,4%</div><div class="delta">План 12% · 260 шт.</div></div>
+    <div class="kpi-card"><div class="label">Вузы</div><div class="value">21,2%</div><div class="delta">План 23,62% · 269 шт.</div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Сравнение факт vs план по типам ОО</h3><div class="chart-container"><canvas id="g42_bar"></canvas></div></div>
+    <div class="widget"><h3>Накопление верификаций по кварталам</h3><div class="chart-container"><canvas id="g42_q"></canvas></div></div>
+  </div>
+
+  <div class="grid grid-3" style="margin-top:16px">
+    <div class="kpi-card"><div class="label">Пользователи 14-24 с ПД</div><div class="value">712 400</div><div class="delta">План 809 000 (88%)</div></div>
+    <div class="kpi-card"><div class="label">Лояльные 14-24</div><div class="value">168 200</div><div class="delta">План 200 000 (84%)</div></div>
+    <div class="kpi-card"><div class="label">Соц. задачи «Обучение служением»</div><div class="value">8 240</div><div class="delta">План 10 000 (82%)</div></div>
+    <div class="kpi-card"><div class="label">Соц. партнёры программы</div><div class="value">3 280</div><div class="delta">План 4 000 (82%)</div></div>
+    <div class="kpi-card"><div class="label">Наставник.рф: кандидаты</div><div class="value">28 400</div><div class="delta">План 35 000 (81%)</div></div>
+    <div class="kpi-card"><div class="label">Наставники с наставляемыми</div><div class="value">1 720</div><div class="delta">План 2 000 (86%)</div></div>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 5.1 ===== -->
+<div class="dashboard" id="g51">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 25.11.2025</span>
+    <h1>Цель 5.1 — Регионы со стратинициативой «Добро — норма жизни»</h1>
+    <div class="subtitle">Источник: реестр соглашений Ассоциации</div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Регионов с соглашением</div><div class="value">21</div><div class="delta">План 25 (84%)</div></div>
+    <div class="kpi-card"><div class="label">В процессе</div><div class="value">8</div><div class="delta">Подписание Q4</div></div>
+    <div class="kpi-card"><div class="label">К плану 2030</div><div class="value">23,6%</div><div class="delta">План 89 регионов</div></div>
+    <div class="kpi-card"><div class="label">Статус</div><div class="value light-yellow">🟡</div><div class="delta">Жёлтая зона</div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Динамика подписания соглашений по месяцам</h3><div class="chart-container"><canvas id="g51_bar"></canvas></div></div>
+    <div class="widget">
+      <h3>Карта подписавших регионов</h3>
+      <div class="map-placeholder">
+        <div style="font-size:42px">🗺️</div>
+        <div class="legend">
+          <span><span class="dot" style="background:#38a169"></span>Подписано (21)</span>
+          <span><span class="dot" style="background:#ed8936"></span>В процессе (8)</span>
+          <span><span class="dot" style="background:#cbd5e0"></span>Не подписано (60)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>Связанный показатель: регионы с НПА о мерах поддержки в Добро.Навигаторе</h3>
+    <div class="bullet">
+      <div class="bullet-bar"><div class="bullet-fill" style="width:80%;background:linear-gradient(90deg,#2c5282,#4299e1)"></div></div>
+      <div class="bullet-label"><span>Старт: 0</span><span>Факт: 8</span><span>План 2026: 10</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 6.1 ===== -->
+<div class="dashboard" id="g61">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 24.11.2025 (Пн)</span>
+    <h1>Цель 6.1 — Индекс развития региональной инфраструктуры</h1>
+    <div class="subtitle">Лидер: К. Антонов · Периодичность: еженедельно · Источники: мониторинг ДРР, Bitrix24, Цифровое Добрино</div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group"><label>Категория</label><select><option>Все</option><option>X (>2 млн)</option><option>Y (1-2 млн)</option><option>Z (&lt;1 млн)</option></select></div>
+    <div class="filter-group"><label>ФО</label><select><option>Все ФО</option></select></div>
+    <div class="filter-group"><label>Регион</label><select><option>Все регионы</option></select></div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Средневзвешенный индекс РФ</div><div class="value">38,7%</div><div class="delta">План 50% · Прогресс 77,4%</div></div>
+    <div class="kpi-card"><div class="label">🟢 Зелёная зона</div><div class="value">25</div><div class="delta">регионов</div></div>
+    <div class="kpi-card"><div class="label">🟡 Жёлтая зона</div><div class="value">41</div><div class="delta">регион</div></div>
+    <div class="kpi-card"><div class="label">🔴 Красная зона</div><div class="value">23</div><div class="delta">региона</div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget">
+      <h3>Карта России — индекс по регионам</h3>
+      <div class="map-placeholder" style="height:320px">
+        <div style="font-size:42px">🗺️</div>
+        <div>Картограмма индекса инфраструктуры</div>
+        <div class="legend">
+          <span><span class="dot" style="background:#38a169"></span>≥45% (зелёная)</span>
+          <span><span class="dot" style="background:#ed8936"></span>30-44% (жёлтая)</span>
+          <span><span class="dot" style="background:#e53e3e"></span>&lt;30% (красная)</span>
+        </div>
+      </div>
+    </div>
+    <div class="widget">
+      <h3>Детализация индекса по 8 индикаторам (среднее по РФ)</h3>
+      <div class="indicator-list" id="g61_indicators"></div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Средний индекс по категориям регионов</h3><div class="chart-container"><canvas id="g61_cat"></canvas></div></div>
+    <div class="widget"><h3>Динамика индекса по кварталам</h3><div class="chart-container"><canvas id="g61_q"></canvas></div></div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>Сводный рейтинг регионов</h3>
+    <table>
+      <thead><tr><th>Место</th><th>ФО</th><th>Регион</th><th>Категория</th><th>Индекс</th><th>Зона</th></tr></thead>
+      <tbody id="g61_rank"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 7.1 ===== -->
+<div class="dashboard" id="g71">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 03.11.2025 (за октябрь)</span>
+    <h1>Цель 7.1 — Внебюджетные средства</h1>
+    <div class="subtitle">Лидер: М. Хабибрахманова · Периодичность: ежемесячно · Источник: финансовая отчётность</div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Доля внебюджета</div><div class="value">14,8%</div><div class="delta">План 16,3% (91%)</div></div>
+    <div class="kpi-card"><div class="label">Абс. значение</div><div class="value">312 млн ₽</div><div class="delta">План 350 млн</div></div>
+    <div class="kpi-card"><div class="label">К плану 2030</div><div class="value">37,0%</div><div class="delta">План 40%</div></div>
+    <div class="kpi-card"><div class="label">Статус</div><div class="value light-green">🟢</div><div class="delta">Зелёная зона</div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Помесячная динамика доли внебюджетных средств</h3><div class="chart-container"><canvas id="g71_line"></canvas></div></div>
+    <div class="widget"><h3>Структура внебюджетных доходов</h3><div class="chart-container"><canvas id="g71_pie"></canvas></div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="kpi-card"><div class="label">Воронка продаж компаний</div><div class="value">168</div><div class="delta">План 200 (84%)</div></div>
+    <div class="kpi-card"><div class="label">Клуб друзей (балл)</div><div class="value">8</div><div class="delta">Цель: 9 баллов</div></div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>План-факт по кварталам, млн ₽</h3>
+    <div class="chart-container"><canvas id="g71_q"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 8.1 ===== -->
+<div class="dashboard" id="g81">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 30.09.2025 (Q3)</span>
+    <h1>Цель 8.1 — Уровень вовлечённости сотрудников</h1>
+    <div class="subtitle">Лидер: Е. Котельникова · Периодичность: ежеквартально · Источник: опросы AXES</div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Уровень вовлечённости</div><div class="value">59%</div><div class="delta">План 60% (98%)</div></div>
+    <div class="kpi-card"><div class="label">Текучесть персонала</div><div class="value">41,2%</div><div class="delta">План ≤38%</div></div>
+    <div class="kpi-card"><div class="label">HR-бренд</div><div class="value">3,95</div><div class="delta">План 4,0</div></div>
+    <div class="kpi-card"><div class="label">Кадровый резерв</div><div class="value">62%</div><div class="delta">План 70% от крит. долж.</div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Динамика вовлечённости по кварталам</h3><div class="chart-container"><canvas id="g81_line"></canvas></div></div>
+    <div class="widget"><h3>HR-метрики (топ-3)</h3><div class="chart-container"><canvas id="g81_radar"></canvas></div></div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>Связанные показатели департаментов, влияющих на Цель 8</h3>
+    <table>
+      <thead><tr><th>Департамент</th><th>Показатель</th><th>Факт</th><th>План</th><th>Статус</th></tr></thead>
+      <tbody>
+        <tr><td>Финансовый</td><td>Согласование документов (ч)</td><td>14,2</td><td>13,5</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>Финансовый</td><td>Удовлетворённость работой</td><td>78%</td><td>80%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>АПОВ</td><td>Договоры по шаблонам</td><td>96%</td><td>97%</td><td class="light-green">🟢</td></tr>
+        <tr><td>АПОВ</td><td>Удовлетворённость юр. сопр.</td><td>88%</td><td>90%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>Отдел ИТ</td><td>Удовлетворённость поддержкой</td><td>71%</td><td>75%</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>ЦРС</td><td>Проект обратной связи (балл)</td><td>4,5</td><td>5</td><td class="light-yellow">🟡</td></tr>
+        <tr><td>ДОП</td><td>Адаптационный курс (% штата)</td><td>44%</td><td>50%</td><td class="light-yellow">🟡</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== ЦЕЛЬ 9.1 ===== -->
+<div class="dashboard" id="g91">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 25.11.2025</span>
+    <h1>Цель 9.1 — Пользователи Dobro.org</h1>
+    <div class="subtitle">Лидер: А. Пысин · Периодичность: ежедневно · Источник: платформа Dobro.org</div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="kpi-card"><div class="label">Пользователей (накопит.)</div><div class="value">52 400</div><div class="delta">План 75 000 (70%)</div></div>
+    <div class="kpi-card"><div class="label">Лояльные (3+ ПД)</div><div class="value">18 200</div><div class="delta">План 25 000 (73%)</div></div>
+    <div class="kpi-card"><div class="label">Стран</div><div class="value">98</div><div class="delta">План ≥94 ✓</div></div>
+    <div class="kpi-card"><div class="label">Статус</div><div class="value light-yellow">🟡</div><div class="delta">Жёлтая зона</div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="widget"><h3>Помесячная динамика пользователей Dobro.org</h3><div class="chart-container"><canvas id="g91_line"></canvas></div></div>
+    <div class="widget">
+      <h3>Карта мира — распределение пользователей</h3>
+      <div class="map-placeholder">
+        <div style="font-size:42px">🌍</div>
+        <div>Распределение по странам</div>
+        <div class="legend">
+          <span>🇷🇺 Россия — 18 200</span>
+          <span>🇺🇿 Узбекистан — 6 400</span>
+          <span>🇰🇬 Кыргызстан — 3 800</span>
+          <span>🇧🇾 Беларусь — 2 900</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-3" style="margin-top:16px">
+    <div class="kpi-card"><div class="label">Польз. из Узб. и Кырг.</div><div class="value">10 200</div><div class="delta">План 15 000 (68%)</div></div>
+    <div class="kpi-card"><div class="label">Опорные страны (DOBRO Index)</div><div class="value">4</div><div class="delta">План 5</div></div>
+    <div class="kpi-card"><div class="label">«Миссия Добро»</div><div class="value">2 480 / 16 / 5</div><div class="delta">Волонтёры / миссии / партнёры</div></div>
+  </div>
+</div>
+
+<!-- ===== ДЕПАРТАМЕНТ (ПРИМЕР) ===== -->
+<div class="dashboard" id="dept">
+  <div class="dash-header">
+    <span class="updated">🟢 Обновлено: 25.11.2025</span>
+    <h1>Дашборд департамента — Департамент развития ИТ-продуктов</h1>
+    <div class="subtitle">Руководитель: И. Погорелов · Влияние на цели: 1, 2, 8 · 6 KPI</div>
+  </div>
+
+  <h2 class="section-title">KPI департамента</h2>
+  <div class="grid grid-3">
+    <div class="kpi-card"><div class="label">Конверсия в ПД (новые ФЛ)</div><div class="value">62%</div><div class="delta">План 65% · Старт 58%</div></div>
+    <div class="kpi-card"><div class="label">Среднемес. лояльных польз.</div><div class="value">0,67 млн</div><div class="delta">План 0,8 млн (84%)</div></div>
+    <div class="kpi-card"><div class="label">Возвращаемость (3+ ПД/год)</div><div class="value">42%</div><div class="delta">План 45% · Старт 36,3%</div></div>
+    <div class="kpi-card"><div class="label">Внедрение визуализации данных</div><div class="value">0,8</div><div class="delta">План 1 (готовность)</div></div>
+    <div class="kpi-card"><div class="label">Верификация данных (балл)</div><div class="value">6</div><div class="delta">План 8 баллов</div></div>
+    <div class="kpi-card"><div class="label">DOBRO ID / ЛЭКВ (балл)</div><div class="value">8</div><div class="delta">План 10 баллов</div></div>
+  </div>
+
+  <div class="widget" style="margin-top:16px">
+    <h3>Помесячная динамика ключевых KPI</h3>
+    <div class="chart-container"><canvas id="dept_line"></canvas></div>
+  </div>
+
+  <h2 class="section-title">Связь с целями Ассоциации</h2>
+  <div class="grid grid-3">
+    <div class="goal-card yellow" onclick="showDash('g11')">
+      <div class="num">ЦЕЛЬ 1.1</div>
+      <div class="title">Пользователи ЕИС Добро.рф</div>
+      <div class="value">5,28 млн</div>
+      <div class="target">План: 6,5 млн</div>
+      <div class="progress"><div class="progress-bar yellow" style="width:81%"></div></div>
+      <div class="leader">Влияние: ВЫСОКОЕ · 81% выполн.</div>
+    </div>
+    <div class="goal-card yellow" onclick="showDash('g21')">
+      <div class="num">ЦЕЛЬ 2.1</div>
+      <div class="title">Среднемес. активные пользователи</div>
+      <div class="value">0,42 млн</div>
+      <div class="target">План: 0,5 млн</div>
+      <div class="progress"><div class="progress-bar yellow" style="width:84%"></div></div>
+      <div class="leader">Влияние: ВЫСОКОЕ · 84% выполн.</div>
+    </div>
+    <div class="goal-card green" onclick="showDash('g81')">
+      <div class="num">ЦЕЛЬ 8.1</div>
+      <div class="title">Вовлечённость сотрудников</div>
+      <div class="value">59%</div>
+      <div class="target">План: 60%</div>
+      <div class="progress"><div class="progress-bar green" style="width:98%"></div></div>
+      <div class="leader">Влияние: КОСВЕННОЕ · 98% выполн.</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ===== НАВИГАЦИЯ =====
+function showDash(id) {
+  document.querySelectorAll('.dashboard').forEach(d => d.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ===== ДАННЫЕ ЦЕЛЕЙ =====
+const goals = [
+  {num:'1.1', title:'Пользователи ЕИС Добро.рф', value:'5,28 млн', target:'План: 6,5 млн', progress:81, status:'yellow', leader:'А. Пысин', dash:'g11'},
+  {num:'2.1', title:'Среднемес. активные пользователи', value:'0,42 млн', target:'План: 0,5 млн', progress:84, status:'yellow', leader:'И. Погорелов', dash:'g21'},
+  {num:'3.1', title:'Узнаваемость бренда', value:'47%', target:'План: 50%', progress:94, status:'green', leader:'А. Назаров', dash:'g31'},
+  {num:'4.1', title:'Доля СО НКО', value:'9,2%', target:'План: 10,5%', progress:88, status:'yellow', leader:'А. Пысин', dash:'g41'},
+  {num:'4.2', title:'Доля образовательных орг.', value:'7,3%', target:'План: 8,52%', progress:86, status:'yellow', leader:'Д. Варанкин', dash:'g42'},
+  {num:'5.1', title:'Регионы со стратинициативой', value:'21', target:'План: 25', progress:84, status:'yellow', leader:'—', dash:'g51'},
+  {num:'6.1', title:'Индекс развития инфраструктуры', value:'38,7%', target:'План: 50%', progress:77, status:'yellow', leader:'К. Антонов', dash:'g61'},
+  {num:'7.1', title:'Внебюджетные средства', value:'14,8%', target:'План: 16,3%', progress:91, status:'green', leader:'М. Хабибрахманова', dash:'g71'},
+  {num:'8.1', title:'Вовлечённость сотрудников', value:'59%', target:'План: 60%', progress:98, status:'green', leader:'Е. Котельникова', dash:'g81'},
+  {num:'9.1', title:'Пользователи Dobro.org', value:'52,4 тыс.', target:'План: 75 тыс.', progress:70, status:'red', leader:'А. Пысин', dash:'g91'}
+];
+
+// Рендер карточек на главном
+const goalCardsEl = document.getElementById('goalCards');
+goals.forEach(g => {
+  goalCardsEl.innerHTML += `
+    <div class="goal-card ${g.status}" onclick="document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));document.querySelector('[onclick*=\\'${g.dash}\\']').classList.add('active');document.querySelectorAll('.dashboard').forEach(d=>d.classList.remove('active'));document.getElementById('${g.dash}').classList.add('active');window.scrollTo(0,0);">
+      <div class="num">ЦЕЛЬ ${g.num} <span class="status-badge ${g.status}">${g.progress}%</span></div>
+      <div class="title">${g.title}</div>
+      <div class="value">${g.value}</div>
+      <div class="target">${g.target}</div>
+      <div class="progress"><div class="progress-bar ${g.status}" style="width:${g.progress}%"></div></div>
+      <div class="leader">Лидер: ${g.leader}</div>
+    </div>`;
+});
+
+// Сводная таблица
+const summaryEl = document.getElementById('summaryTable');
+const summaryData = [
+  ['1.1','А. Пысин','млн','4,6','6,1','6,5','6,9','5,28','81%','yellow'],
+  ['2.1','И. Погорелов','млн','0,3','0,4','0,5','0,6','0,42','84%','yellow'],
+  ['3.1','А. Назаров','%','42','45','50','55','47','94%','green'],
+  ['4.1','А. Пысин','%','7','9,5','10,5','12,5','9,2','88%','yellow'],
+  ['4.2','Д. Варанкин','%','—','6,52','8,52','10,52','7,3','86%','yellow'],
+  ['5.1','—','шт.','0','20','25','30','21','84%','yellow'],
+  ['6.1','К. Антонов','%','—','40','50','60','38,7','77%','yellow'],
+  ['7.1','М. Хабибрахманова','%','11,67','15','16,3','20','14,8','91%','green'],
+  ['8.1','Е. Котельникова','%','58','58','60','62','59','98%','green'],
+  ['9.1','А. Пысин','тыс.','7,8','50','75','100','52,4','70%','red']
+];
+summaryData.forEach(r => {
+  const icon = r[9]==='green'?'🟢':r[9]==='yellow'?'🟡':'🔴';
+  summaryEl.innerHTML += `<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td><b>${r[5]}</b></td><td>${r[6]}</td><td style="color:#2c5282;font-weight:bold">${r[7]}</td><td>${r[8]}</td><td class="light-${r[9]}">${icon}</td></tr>`;
+});
+
+// ===== ОБЩИЕ НАСТРОЙКИ CHART.JS =====
+Chart.defaults.font.family = "'Segoe UI', Roboto, sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#4a5568';
+const months = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+
+// ===== ЦЕЛЬ 1.1 =====
+new Chart(document.getElementById('g11_line'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {label:'Факт 2026 (накопит., млн)', data:[4.65,4.74,4.85,4.93,5.02,5.10,5.16,5.21,5.24,5.26,5.28,null], borderColor:'#4299e1', backgroundColor:'rgba(66,153,225,0.1)', fill:true, tension:0.3},
+      {label:'План 2026', data:[4.76,4.92,5.08,5.24,5.40,5.56,5.72,5.88,6.04,6.20,6.36,6.5], borderColor:'#38a169', borderDash:[5,5], fill:false},
+      {label:'Нижний предел', data:Array(12).fill(6.1), borderColor:'#ed8936', borderDash:[3,3], fill:false, pointRadius:0},
+      {label:'Верхний предел', data:Array(12).fill(6.9), borderColor:'#e53e3e', borderDash:[3,3], fill:false, pointRadius:0}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+new Chart(document.getElementById('g11_bar'), {
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [
+      {label:'2025', data:[42,48,52,55,58,61,55,52,68,72,75,80], backgroundColor:'#cbd5e0'},
+      {label:'2026', data:[58,72,82,95,108,125,135,140,155,165,180,null], backgroundColor:'#4299e1'}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{y:{title:{display:true,text:'Прирост, тыс.'}}}}
+});
+
+new Chart(document.getElementById('g11_pd'), {
+  type: 'bar',
+  data: {
+    labels: ['Посещение мероприятий','Сертификаты Добро.Универ','Малые добрые дела','Создание мероприятий','Подал заявку','Готов помогать','Донорство','ВК Добро','Прикрепил Госуслуги','Прошёл NPS'],
+    datasets: [{data:[1820,1240,890,720,580,460,380,310,1480,210], backgroundColor:'#4299e1'}]
+  },
+  options: {indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{title:{display:true,text:'тыс. пользователей'}}}}
+});
+
+new Chart(document.getElementById('g11_age'), {
+  type: 'doughnut',
+  data: {
+    labels: ['14-17 (18%)','18-23 (28%)','24-35 (32%)','36-55 (16%)','55+ (6%)'],
+    datasets: [{data:[18,28,32,16,6], backgroundColor:['#fc8181','#f6ad55','#4299e1','#48bb78','#a78bfa']}]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right'}}}
+});
+
+// Рейтинг регионов 1.1
+const g11Regions = document.getElementById('g11_regions');
+[
+  ['г. Москва','X','ЦФО','520 тыс.','720 тыс.','648 тыс.','90%','1 из 28','green'],
+  ['Республика Татарстан','X','ПФО','280 тыс.','390 тыс.','340 тыс.','87%','2 из 28','yellow'],
+  ['Краснодарский край','X','ЮФО','310 тыс.','430 тыс.','362 тыс.','84%','3 из 28','yellow'],
+  ['Свердловская область','X','УФО','220 тыс.','310 тыс.','248 тыс.','80%','4 из 28','yellow'],
+  ['Республика Дагестан','X','СКФО','180 тыс.','260 тыс.','180 тыс.','69%','25 из 28','red']
+].forEach(r => {
+  const icon = r[8]==='green'?'🟢':r[8]==='yellow'?'🟡':'🔴';
+  g11Regions.innerHTML += `<tr><td>${r[0]}</td><td><span class="region-zone zone-${r[1]}">${r[1]}</span></td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td><b>${r[5]}</b></td><td style="color:#2c5282;font-weight:bold">${r[6]}</td><td>${r[7]}</td><td class="light-${r[8]}">${icon}</td></tr>`;
+});
+
+// ===== ЦЕЛЬ 2.1 =====
+new Chart(document.getElementById('g21_bar'), {
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [
+      {label:'2025 (среднемес. активные)', data:[280,290,295,302,308,312,298,305,318,325,330,338], backgroundColor:'#cbd5e0'},
+      {label:'2026 (среднемес. активные)', data:[340,365,380,395,402,410,395,408,420,425,430,null], backgroundColor:'#4299e1'},
+      {label:'2025 (лояльные)', data:[480,495,510,520,535,545,540,550,560,572,580,590], backgroundColor:'#fbd38d'},
+      {label:'2026 (лояльные)', data:[610,625,640,655,665,672,668,680,690,695,700,null], backgroundColor:'#ed8936'}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{y:{title:{display:true,text:'тыс. пользователей'}}}}
+});
+
+// Таблицы ПД x Когорты
+const pdTypes = ['Посещение мероприятий','Создание мероприятий','Малые добрые дела','Сертификаты Универ','Донорство','Подал заявку на конкурс','Готов помогать проекту','Откликнулся на вакансию','Прошёл NPS','Пригласил по реф.'];
+const g21fl = document.getElementById('g21_fl');
+pdTypes.forEach(t => {
+  const all = (Math.random()*200+50).toFixed(0);
+  const loy = (all*0.6).toFixed(0);
+  const a1 = (all*0.42).toFixed(0);
+  const a2 = (all*0.28).toFixed(0);
+  const a3 = (all*0.18).toFixed(0);
+  const m = (all*0.48).toFixed(0);
+  const z = (all*0.52).toFixed(0);
+  g21fl.innerHTML += `<tr><td>${t}</td><td><b>${all}</b></td><td>${loy}</td><td>${a1}</td><td>${a2}</td><td>${a3}</td><td>${m}</td><td>${z}</td></tr>`;
+});
+
+const g21ul = document.getElementById('g21_ul');
+['Создание мероприятий','Создание проектов','Подал заявку на конкурс','Заявка в Добро.Центр','Малые добрые дела','Готов помогать','Прикрепил Госуслуги','Подал заявку на меру поддержки'].forEach(t => {
+  const all = (Math.random()*60+10).toFixed(0);
+  const loy = (all*0.7).toFixed(0);
+  const nko = (all*0.42).toFixed(0);
+  const vuz = (all*0.18).toFixed(0);
+  const sch = (all*0.22).toFixed(0);
+  const spo = (all*0.06).toFixed(0);
+  const com = (all*0.12).toFixed(0);
+  g21ul.innerHTML += `<tr><td>${t}</td><td><b>${all}</b></td><td>${loy}</td><td>${nko}</td><td>${vuz}</td><td>${sch}</td><td>${spo}</td><td>${com}</td></tr>`;
+});
+
+// ===== ЦЕЛЬ 3.1 =====
+new Chart(document.getElementById('g31_line'), {
+  type: 'line',
+  data: {
+    labels: ['Q1 2025','Q2 2025','Q3 2025','Q4 2025','Q1 2026','Q2 2026','Q3 2026','Q4 2026 (план)'],
+    datasets: [
+      {label:'Узнаваемость, %', data:[40,41,42,43,44,45,47,50], borderColor:'#4299e1', backgroundColor:'rgba(66,153,225,0.1)', fill:true, tension:0.3},
+      {label:'Доверие, %', data:[85,86,88,87,88,84,82,82], borderColor:'#38a169', tension:0.3}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+new Chart(document.getElementById('g31_subs'), {
+  type: 'bar',
+  data: {
+    labels: ['ВКонтакте','Telegram','Одноклассники','MAX','RuTube','Дзен'],
+    datasets: [
+      {label:'Факт', data:[238000,142000,76000,32000,12000,12380], backgroundColor:'#4299e1'},
+      {label:'План', data:[270000,165000,90000,50000,15000,10000], backgroundColor:'#cbd5e0'}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+// ===== ЦЕЛЬ 4.1 =====
+new Chart(document.getElementById('g41_line'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {label:'Факт 2026, %', data:[7.2,7.5,7.8,8.0,8.3,8.5,8.7,8.9,9.0,9.1,9.2,null], borderColor:'#4299e1', backgroundColor:'rgba(66,153,225,0.1)', fill:true, tension:0.3},
+      {label:'План 2026, %', data:[7.3,7.6,7.9,8.2,8.5,8.8,9.1,9.4,9.7,10.0,10.3,10.5], borderColor:'#38a169', borderDash:[5,5]}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+new Chart(document.getElementById('g41_pie'), {
+  type: 'doughnut',
+  data: {
+    labels: ['🟢 Зелёная (18 регионов)','🟡 Жёлтая (38 регионов)','🔴 Красная (33 региона)'],
+    datasets: [{data:[18,38,33], backgroundColor:['#38a169','#ed8936','#e53e3e']}]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right'}}}
+});
+
+// ===== ЦЕЛЬ 4.2 =====
+new Chart(document.getElementById('g42_bar'), {
+  type: 'bar',
+  data: {
+    labels: ['Школы','СПО','Вузы'],
+    datasets: [
+      {label:'Факт, %', data:[6.5,10.4,21.2], backgroundColor:'#4299e1'},
+      {label:'План 2026, %', data:[7.79,12,23.62], backgroundColor:'#cbd5e0'}
+    ]
+  },
+  options: {indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+new Chart(document.getElementById('g42_q'), {
+  type: 'line',
+  data: {
+    labels: ['Q1 2025','Q2','Q3','Q4','Q1 2026','Q2','Q3','Q4 (план)'],
+    datasets: [
+      {label:'Школы', data:[1400,1600,1850,2050,2150,2300,2400,3000], borderColor:'#4299e1', tension:0.3},
+      {label:'СПО', data:[150,180,210,230,240,250,255,300], borderColor:'#38a169', tension:0.3},
+      {label:'Вузы', data:[170,195,220,235,245,255,265,300], borderColor:'#ed8936', tension:0.3}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+// ===== ЦЕЛЬ 5.1 =====
+new Chart(document.getElementById('g51_bar'), {
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [{
+      label:'Подписано (накопит.)', 
+      data:[3,5,7,9,11,13,15,17,18,19,21,null], 
+      backgroundColor:'#4299e1'
+    }]
+  },
+  options: {responsive:true, maintainAspectRatio:false}
+});
+
+// ===== ЦЕЛЬ 6.1 — 8 и��дикаторов =====
+const indicators = [
+  {name:'6.1.1 Стратегические цели Ассоциации',weight:25,value:48,color:'#ed8936'},
+  {name:'6.1.2 Утверждение РЦ по ФЗ',weight:15,value:42,color:'#ed8936'},
+  {name:'6.1.3 Услуги по стандарту',weight:15,value:12,color:'#e53e3e'},
+  {name:'6.1.4 Меры поддержки',weight:5,value:78,color:'#38a169'},
+  {name:'6.1.5 Стандарт Добро.Центров',weight:15,value:8,color:'#e53e3e'},
+  {name:'6.1.6 Обучение сотрудников',weight:10,value:32,color:'#ed8936'},
+  {name:'6.1.7 Работа в CRM',weight:5,value:62,color:'#38a169'},
+  {name:'6.1.8 Обучающие программы',weight:10,value:71,color:'#38a169'}
+];
+const indEl = document.getElementById('g61_indicators');
+indicators.forEach(i => {
+  indEl.innerHTML += `
+    <div class="indicator-row">
+      <div class="indicator-weight">${i.weight}%</div>
+      <div class="indicator-name">${i.name}</div>
+      <div class="indicator-bar"><div class="indicator-fill" style="width:${i.value}%;background:${i.color}"></div></div>
+      <div class="indicator-value" style="color:${i.color}">${i.value}%</div>
+    </div>`;
+});
+
+new Chart(document.getElementById('g61_cat'), {
+  type: 'bar',
+  data: {
+    labels: ['Зона X (>2 млн)','Зона Y (1-2 млн)','Зона Z (<1 млн)'],
+    datasets: [
+      {label:'Средний индекс, %', data:[44.2,38.1,33.8], backgroundColor:['#4299e1','#ed8936','#fc8181']},
+      {label:'План 2026', data:[50,50,50], backgroundColor:'rgba(56,161,105,0.3)', type:'line', borderColor:'#38a169', borderDash:[5,5]}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+new Chart(document.getElementById('g61_q'), {
+  type: 'line',
+  data: {
+    labels: ['Q4 2024','Q1 2025','Q2','Q3','Q4','Q1 2026','Q2','Q3','Q4 (план)'],
+    datasets: [{
+      label:'Индекс инфраструктуры, %', 
+      data:[15,22,28,32,36,38.5,38.7,38.7,50], 
+      borderColor:'#4299e1', backgroundColor:'rgba(66,153,225,0.1)', fill:true, tension:0.3
+    }]
+  },
+  options: {responsive:true, maintainAspectRatio:false}
+});
+
+// Рейтинг 6.1
+const g61rank = document.getElementById('g61_rank');
+[
+  [1,'ЦФО','г. Москва','X',68,'green'],
+  [2,'ПФО','Республика Татарстан','X',62,'green'],
+  [3,'УФО','Тюменская область','Y',58,'green'],
+  [4,'ЦФО','Белгородская область','Y',55,'green'],
+  [5,'СЗФО','Ленинградская область','X',52,'green'],
+  [6,'СЗФО','г. Санкт-Петербург','X',51,'green'],
+  [7,'ПФО','Самарская область','X',47,'yellow'],
+  [8,'УФО','Свердловская область','X',43,'yellow'],
+  [9,'ЦФО','Тульская область','Y',41,'yellow'],
+  [10,'ДФО','Сахалинская область','Z',38,'yellow'],
+  ['...','','...','',null,''],
+  [87,'СКФО','Республика Ингушетия','Z',18,'red'],
+  [88,'ДФО','Чукотский АО','Z',15,'red'],
+  [89,'ДФО','Магаданская область','Z',12,'red']
+].forEach(r => {
+  if (r[4] === null) { g61rank.innerHTML += `<tr><td colspan="6" style="text-align:center;color:#cbd5e0">...</td></tr>`; return; }
+  const icon = r[5]==='green'?'🟢':r[5]==='yellow'?'🟡':'🔴';
+  g61rank.innerHTML += `<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td><span class="region-zone zone-${r[3]}">${r[3]}</span></td><td style="color:#2c5282;font-weight:bold">${r[4]}%</td><td class="light-${r[5]}">${icon}</td></tr>`;
+});
+
+// ===== ЦЕЛЬ 7.1 =====
+new Chart(document.getElementById('g71_line'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {label:'Факт, %', data:[12.1,12.8,13.2,13.5,13.8,14.1,14.3,14.5,14.7,14.8,null,null], borderColor:'#4299e1', backgroundColor:'rgba(66,153,225,0.1)', fill:true, tension:0.3},
+      {label:'План 2026', data:[13,13.5,14,14.3,14.7,15,15.3,15.6,15.9,16.1,16.2,16.3], borderColor:'#38a169', borderDash:[5,5]}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+new Chart(document.getElementById('g71_pie'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Продукты и услуги (38%)','Партнёрство (28%)','Гранты (18%)','Клуб друзей (10%)','Прочее (6%)'],
+    datasets: [{data:[38,28,18,10,6], backgroundColor:['#4299e1','#38a169','#ed8936','#a78bfa','#cbd5e0']}]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right'}}}
+});
+
+new Chart(document.getElementById('g71_q'), {
+  type: 'bar',
+  data: {
+    labels: ['Q1','Q2','Q3','Q4'],
+    datasets: [
+      {label:'План, млн ₽', data:[70,85,95,100], backgroundColor:'#cbd5e0'},
+      {label:'Факт, млн ₽', data:[68,82,92,70], backgroundColor:'#4299e1'}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+// ===== ЦЕЛЬ 8.1 =====
+new Chart(document.getElementById('g81_line'), {
+  type: 'line',
+  data: {
+    labels: ['Q4 2024','Q1 2025','Q2 2025','Q3 2025','Q4 2025','Q1 2026','Q2 2026','Q3 2026','Q4 2026 (план)'],
+    datasets: [{
+      label:'Вовлечённость, %', 
+      data:[42,48,52,55,58,57,58,59,60], 
+      borderColor:'#4299e1', backgroundColor:'rgba(66,153,225,0.1)', fill:true, tension:0.3
+    }]
+  },
+  options: {responsive:true, maintainAspectRatio:false}
+});
+
+new Chart(document.getElementById('g81_radar'), {
+  type: 'radar',
+  data: {
+    labels: ['Вовлечённость','HR-бренд (норм.)','Текучесть (обр.)','Кадр. резерв','Адаптация'],
+    datasets: [
+      {label:'Факт', data:[59,79,59,62,44], backgroundColor:'rgba(66,153,225,0.2)', borderColor:'#4299e1'},
+      {label:'План', data:[60,80,62,70,50], backgroundColor:'rgba(56,161,105,0.2)', borderColor:'#38a169'}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+// ===== ЦЕЛЬ 9.1 =====
+new Chart(document.getElementById('g91_line'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {label:'Факт (накопит.), тыс.', data:[12,18,24,30,36,41,44,46,48,50,52,null], borderColor:'#4299e1', backgroundColor:'rgba(66,153,225,0.1)', fill:true, tension:0.3},
+      {label:'План 2026', data:[15,22,29,36,43,50,56,62,67,71,73,75], borderColor:'#38a169', borderDash:[5,5]}
+    ]
+  },
+  options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+// ===== ДЕПАРТАМЕНТ =====
+new Chart(document.getElementById('dept_line'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {label:'Конверсия в ПД, %', data:[58,59,59,60,60,61,61,62,62,62,62,null], borderColor:'#4299e1', tension:0.3},
+      {label:'Лояльные польз., тыс.', data:[610,625,640,655,665,672,668,680,690,695,700,null], borderColor:'#38a169', tension:0.3, yAxisID:'y1'},
+      {label:'Возвращаемость, %', data:[37,38,39,40,40,41,41,42,42,42,42,null], borderColor:'#ed8936', tension:0.3}
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, 
+    scales:{
+      y:{title:{display:true,text:'%'}},
+      y1:{position:'right', grid:{drawOnChartArea:false}, title:{display:true,text:'тыс.'}}
+    }
+  }
+});
+</script>
+
+</body>
+</html>
