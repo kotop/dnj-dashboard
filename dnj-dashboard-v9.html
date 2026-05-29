@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ДНЖ · Мониторинг v7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+:root,[data-theme="light"]{
+  --bg:#f5f4f0;--sf:#faf9f7;--sf2:#ffffff;--sfo:#eceae5;--dv:#dddbd7;--bd:#ccc9c3;
+  --tx:#1e1c17;--mu:#757370;--fa:#b0aeaa;--iv:#faf9f7;
+  --pr:#0a6b70;--prh:#08494d;--prhi:#d0e4e4;
+  --ok:#3d7a1a;--okhi:#d3e6ca;--er:#b02060;--erhi:#e8cedd;
+  --wn:#c05800;--wnhi:#edd9c8;--go:#b08800;--gohi:#ece1c0;
+  --te:#2060a0;--tehi:#ccddef;--pu:#7030b0;--puhi:#dfd0ed;
+  --sd-sm:0 1px 3px rgba(0,0,0,.07);--sd-md:0 3px 10px rgba(0,0,0,.09);--sd-lg:0 8px 28px rgba(0,0,0,.12);
+  --r:6px;--r2:10px;--r3:14px;--font:'Inter',system-ui,sans-serif;--sidebar:224px;
+}
+[data-theme="dark"]{
+  --bg:#131210;--sf:#181714;--sf2:#1e1d1b;--sfo:#161514;--dv:#262422;--bd:#302e2c;
+  --tx:#d4d2ce;--mu:#7a7875;--fa:#4d4c4a;--iv:#d4d2ce;
+  --pr:#4d9fa8;--prh:#68b8c0;--prhi:#1d3739;
+  --ok:#6aac3e;--okhi:#2a3d22;--er:#d06090;--erhi:#3d1d2d;
+  --wn:#f09040;--wnhi:#3d2c1a;--go:#e0b030;--gohi:#3a320e;
+  --te:#5090d0;--tehi:#1c3250;--pu:#a060e0;--puhi:#2e1d47;
+  --sd-sm:0 1px 3px rgba(0,0,0,.3);--sd-md:0 3px 10px rgba(0,0,0,.4);--sd-lg:0 8px 28px rgba(0,0,0,.5);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);min-height:100dvh;display:flex}
+.sidebar{width:var(--sidebar);min-height:100dvh;background:var(--sf);border-right:1px solid var(--dv);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:200;transition:transform .25s ease}
+.sidebar-logo{padding:16px 14px 12px;border-bottom:1px solid var(--dv)}
+.sidebar-nav{flex:1;padding:8px 0;overflow-y:auto}
+.nav-section{padding:12px 14px 4px;font-size:10px;color:var(--fa);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 14px;color:var(--mu);cursor:pointer;border-radius:var(--r);margin:1px 6px;font-size:13px;font-weight:450;transition:.15s ease;border:none;background:none;width:calc(100% - 12px);text-align:left}
+.nav-item:hover{background:var(--sfo);color:var(--tx)}
+.nav-item.active{background:var(--prhi);color:var(--pr);font-weight:600}
+.nav-item svg{flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.sidebar-footer{padding:10px 14px 14px;border-top:1px solid var(--dv)}
+.theme-btn{background:none;border:1px solid var(--bd);color:var(--mu);border-radius:var(--r);padding:4px 7px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:11px;transition:.15s}
+.theme-btn:hover{color:var(--tx);border-color:var(--pr)}
+.hamburger{display:none;background:none;border:1px solid var(--bd);border-radius:var(--r);padding:5px 7px;cursor:pointer;color:var(--tx)}
+.main{margin-left:var(--sidebar);flex:1;min-width:0;padding:20px 22px;max-width:calc(100vw - var(--sidebar))}
+.page{display:none}
+.page.active{display:block}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.page-title{font-size:18px;font-weight:700;letter-spacing:-.02em}
+.page-subtitle{font-size:12px;color:var(--mu);margin-top:2px}
+.header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.period-selector{display:flex;gap:3px;background:var(--sfo);border-radius:var(--r);padding:3px}
+.period-btn{background:none;border:none;border-radius:calc(var(--r) - 2px);padding:3px 9px;font-size:11px;cursor:pointer;color:var(--mu);transition:.15s;font-family:var(--font)}
+.period-btn.active,.period-btn:hover{background:var(--sf2);color:var(--tx);box-shadow:var(--sd-sm)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--r);border:1px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;cursor:pointer;transition:.15s;font-family:var(--font)}
+.btn:hover{border-color:var(--pr);color:var(--pr)}
+.btn-sm{padding:4px 9px;font-size:11px}
+.btn-primary{background:var(--pr);border-color:var(--pr);color:white}
+.btn-primary:hover{background:var(--prh);border-color:var(--prh);color:white}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+.g14{grid-template-columns:1fr 2.5fr}
+.g23{grid-template-columns:1.2fr 2fr}
+.g32{grid-template-columns:2fr 1.2fr}
+.card{background:var(--sf);border:1px solid var(--dv);border-radius:var(--r2);padding:14px;box-shadow:var(--sd-sm)}
+.card-title{font-size:12px;font-weight:600;color:var(--mu);margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.04em}
+.kpi-card{background:var(--sf);border:1px solid var(--dv);border-radius:var(--r2);padding:12px 14px;box-shadow:var(--sd-sm)}
+.kpi-label{font-size:11px;color:var(--mu);margin-bottom:4px}
+.kpi-value{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.kpi-unit{font-size:13px;font-weight:600;margin-left:2px}
+.kpi-meta{font-size:11px;color:var(--mu);margin-top:3px}
+.delta{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.delta.up{color:var(--ok)}
+.delta.dn{color:var(--er)}
+.delta.flat{color:var(--mu)}
+.prog{height:4px;background:var(--sfo);border-radius:100px;overflow:hidden;margin-top:8px}
+.prog.sm{height:3px;margin-top:6px}
+.prog.thick{height:6px}
+.prog-bar{height:100%;border-radius:100px;transition:width .6s ease}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:.02em}
+.badge-ok{background:var(--okhi);color:var(--ok)}
+.badge-warn{background:var(--wnhi);color:var(--wn)}
+.badge-err{background:var(--erhi);color:var(--er)}
+.badge-muted{background:var(--sfo);color:var(--mu)}
+.badge-info{background:var(--tehi);color:var(--te)}
+.sec-div{font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 6px;border-bottom:1px solid var(--dv);margin-bottom:12px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;color:var(--fa);font-weight:600;padding:4px 6px;text-align:left;border-bottom:1px solid var(--dv);white-space:nowrap}
+.tbl td{font-size:12px;padding:5px 6px;border-bottom:1px solid var(--dv);font-variant-numeric:tabular-nums}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--sfo)}
+.ch{width:100%;position:relative}
+.ch-200{height:200px}
+.ch-220{height:220px}
+.ch-240{height:240px}
+.ch-260{height:260px}
+.ch-280{height:280px}
+.ch-320{height:320px}
+.ch-160{height:160px}
+.light{border:none;border-top:1px solid var(--dv);margin:10px 0}
+.gauge-wrap{position:relative;width:160px;margin:0 auto}
+.gauge-svg{width:100%;height:auto}
+.alert-box{padding:8px 12px;border-radius:var(--r);font-size:12px;margin-bottom:6px;line-height:1.4}
+.alert-box.critical{background:var(--erhi);color:var(--er);border-left:3px solid var(--er)}
+.alert-box.warning{background:var(--wnhi);color:var(--wn);border-left:3px solid var(--wn)}
+.alert-box.ok{background:var(--okhi);color:var(--ok);border-left:3px solid var(--ok)}
+.alert-box.info{background:var(--tehi);color:var(--te);border-left:3px solid var(--te)}
+.pillar{background:var(--sf);border:1px solid var(--dv);border-radius:var(--r2);padding:12px 14px;box-shadow:var(--sd-sm)}
+.pillar-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.pillar-name{font-size:13px;font-weight:700}
+.pillar-sub{font-size:10px;color:var(--mu);margin-top:1px}
+.pillar-score{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.ind-list{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+.ind-item{display:flex;justify-content:space-between;align-items:center}
+.ind-name{font-size:11px;color:var(--mu)}
+.ind-val{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.fo-row{display:grid;grid-template-columns:18px 1fr 36px 50px 56px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--dv)}
+.fo-row:last-child{border-bottom:none}
+.fo-name{font-size:12px;font-weight:600}
+.fo-bar-wrap{height:3px;background:var(--sfo);border-radius:100px;margin-top:3px}
+.fo-bar{height:3px;border-radius:100px}
+.fo-val{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+.heatmap{width:100%;border-collapse:collapse;font-size:11px}
+.heatmap th{padding:5px 6px;font-size:10px;color:var(--mu);font-weight:600;text-align:center}
+.heatmap td{padding:6px 8px;text-align:center;cursor:pointer;border-radius:4px;font-weight:700;transition:.1s}
+.heatmap td:hover{opacity:.8}
+.hm-c0{background:#6b0020;color:#fff}
+.hm-c1{background:#b04030;color:#fff}
+.hm-c2{background:#c07020;color:#fff}
+.hm-c3{background:#508040;color:#fff}
+.hm-c4{background:#2a7030;color:#fff}
+[data-theme="light"] .hm-c0{background:#f9d0d8}
+[data-theme="light"] .hm-c1{background:#f5b8a0}
+[data-theme="light"] .hm-c2{background:#f5dea0}
+[data-theme="light"] .hm-c3{background:#cce8c0}
+[data-theme="light"] .hm-c4{background:#a0d090}
+.idx-card{background:var(--sf);border:1px solid var(--dv);border-radius:var(--r2);padding:12px 14px}
+.idx-num{font-size:10px;font-weight:700;color:var(--fa);text-transform:uppercase;letter-spacing:.06em}
+.idx-name{font-size:12px;font-weight:600;margin:3px 0 6px;line-height:1.3}
+.idx-score{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+.idx-target{font-size:10px;color:var(--mu);margin-top:3px}
+.signal{display:flex;gap:10px;padding:10px 12px;border-radius:var(--r);border:1px solid var(--dv);margin-bottom:8px;background:var(--sf)}
+.signal-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.signal-icon.err{color:var(--er)}
+.signal-icon.warn{color:var(--wn)}
+.signal-icon.ok{color:var(--ok)}
+.signal-title{font-size:12px;font-weight:700;margin-bottom:3px}
+.signal-body{font-size:11px;color:var(--mu);line-height:1.4}
+.region-selector{display:flex;align-items:center;gap:8px}
+.region-selector select{border:1px solid var(--bd);border-radius:var(--r);padding:4px 8px;background:var(--sf);color:var(--tx);font-size:12px;cursor:pointer;font-family:var(--font)}
+.radar-wrap{position:relative;width:min(260px,100%);margin:0 auto;aspect-ratio:1}
+.tab-bar{display:flex;gap:2px;border-bottom:1px solid var(--dv);margin-bottom:14px;overflow-x:auto}
+.tab{background:none;border:none;padding:7px 12px;font-size:12px;color:var(--mu);cursor:pointer;border-bottom:2px solid transparent;font-family:var(--font);white-space:nowrap;transition:.15s}
+.tab.active{color:var(--pr);border-bottom-color:var(--pr);font-weight:600}
+.tab:hover:not(.active){color:var(--tx)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.sparkline{display:inline-block;vertical-align:middle}
+.compare-row{display:grid;grid-template-columns:160px 1fr 60px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--dv)}
+.compare-row:last-child{border-bottom:none}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
+.overlay.open{opacity:1;pointer-events:auto}
+.modal{background:var(--sf);border-radius:var(--r3);padding:24px;width:min(480px,90vw);box-shadow:var(--sd-lg);transform:translateY(12px);transition:.2s}
+.overlay.open .modal{transform:translateY(0)}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:12px}
+.modal-close{float:right;background:none;border:none;color:var(--mu);cursor:pointer;font-size:16px}
+#mobileOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;display:none}
+.legend-bar{background:var(--sf);border:1px solid var(--dv);border-radius:var(--r);padding:8px 12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:11px}
+.heatmap-wrap{overflow-x:auto}
+.metric-detail{background:var(--sfo);border-radius:var(--r);padding:10px 12px;margin-bottom:6px}
+.metric-detail-title{font-size:11px;font-weight:700;margin-bottom:4px}
+.metric-detail-row{display:flex;justify-content:space-between;font-size:11px;color:var(--mu);padding:2px 0}
+.info-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 6px;border-radius:100px;background:var(--tehi);color:var(--te);margin-left:4px;cursor:default}
+.methodology-section{margin-bottom:18px}
+.formula-box{background:var(--sfo);border:1px solid var(--bd);border-radius:var(--r);padding:10px 14px;font-family:monospace;font-size:12px;color:var(--pr);margin:8px 0}
+.weight-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--dv)}
+.weight-row:last-child{border-bottom:none}
+.weight-bar-wrap{flex:1;height:4px;background:var(--sfo);border-radius:100px}
+.weight-bar{height:4px;border-radius:100px}
+.breadcrumb{font-size:11px;color:var(--mu);margin-bottom:4px}
+.breadcrumb span{color:var(--pr)}
+.no-print{}
+@media print{.no-print{display:none!important}.sidebar{display:none}.main{margin-left:0;max-width:100%}}
+@media(max-width:900px){
+  :root{--sidebar:220px}
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;max-width:100%;padding:12px 14px}
+  .hamburger{display:flex!important}
+  .g4{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr}
+  .g14{grid-template-columns:1fr}
+  .g23{grid-template-columns:1fr}
+  .g32{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .g2{grid-template-columns:1fr}
+  .g3{grid-template-columns:1fr}
+  .g4{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div id="mobileOverlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="16" fill="var(--pr)" opacity=".18"/>
+        <path d="M16 7 C16 7, 22 11, 22 16.5 C22 20.1, 19.3 23, 16 23 C12.7 23, 10 20.1, 10 16.5 C10 11, 16 7 16 7Z" fill="var(--pr)"/>
+        <path d="M16 12 L16 20 M12.5 15.5 L16 12 L19.5 15.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div style="font-size:13px;font-weight:800;letter-spacing:-.01em">ДНЖ</div>
+        <div style="font-size:9px;color:var(--mu);letter-spacing:.03em;text-transform:uppercase">Мониторинг v7</div>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Обзор</div>
+    <button class="nav-item active" data-page="russia" onclick="showPage('russia')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Россия
+    </button>
+    <button class="nav-item" data-page="region" onclick="showPage('region')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Регион
+    </button>
+    <button class="nav-item" data-page="compare" onclick="showPage('compare')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Сравнение регионов
+    </button>
+    <button class="nav-item" data-page="rating" onclick="showPage('rating')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Рейтинг регионов
+    </button>
+    <div class="nav-section">Три блока</div>
+    <button class="nav-item" data-page="people" onclick="showPage('people')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Люди
+    </button>
+    <button class="nav-item" data-page="orgs" onclick="showPage('orgs')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Организации
+    </button>
+    <button class="nav-item" data-page="infra" onclick="showPage('infra')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Инфраструктура
+    </button>
+    <div class="nav-section">Аналитика</div>
+    <button class="nav-item" data-page="resources" onclick="showPage('resources')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Ресурсы сектора
+    </button>
+    <button class="nav-item" data-page="impact" onclick="showPage('impact')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+      Эффект и благополучатели
+    </button>
+    <button class="nav-item" data-page="municipal" onclick="showPage('municipal')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 12h.01M9 15h.01M15 9h.01M15 12h.01M15 15h.01"/></svg>
+      Муниципальный контур
+    </button>
+    <button class="nav-item" data-page="forecast" onclick="showPage('forecast')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
+      Сценарный прогноз 2030
+    </button>
+    <button class="nav-item" data-page="indexes" onclick="showPage('indexes')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Индексы П1–П7
+    </button>
+    <button class="nav-item" data-page="methodology" onclick="showPage('methodology')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Методика
+    </button>
+    <button class="nav-item" data-page="alerts" onclick="showPage('alerts')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Алерты
+      <span style="margin-left:auto;background:var(--er);color:white;border-radius:100px;font-size:9px;padding:1px 5px;font-weight:700">3</span>
+    </button>
+  </div>
+  <div class="sidebar-footer">
+    <button class="theme-btn" onclick="toggleTheme()">
+      <svg id="themeIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <span id="themeLabel">Светлая тема</span>
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px" class="no-print">
+    <button class="hamburger" onclick="toggleSidebar()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div id="themeIconMob" style="display:none"></div>
+  </div>
+
+  <div id="legendBar" class="legend-bar no-print">
+    <span style="font-weight:700;font-size:10px;color:var(--tx)">ШКАЛА:</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;background:var(--ok);border-radius:100px;display:inline-block"></span>Выполняется (≥75%)</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;background:var(--wn);border-radius:100px;display:inline-block"></span>В работе (50–75%)</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;background:var(--er);border-radius:100px;display:inline-block"></span>Критично (&lt;50%)</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="font-size:13px">📈</span>Прогноз до 2030 пунктиром</span>
+    <button onclick="document.getElementById('legendBar').style.display='none'" style="margin-left:auto;background:none;border:none;color:var(--pr);cursor:pointer;font-size:12px;font-weight:600">✕</button>
+  </div>
+
+  <!-- ===== PAGE: RUSSIA ===== -->
+  <div class="page active" id="page-russia">
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">Стратегическая инициатива «Добро — норма жизни»</div>
+        <div class="page-title">🇷🇺 Россия — сводная страница</div>
+        <div class="page-subtitle">Для высших должностных лиц · Обновлено: май 2025</div>
+      </div>
+      <div class="header-actions no-print">
+        <div class="period-selector">
+          <button class="period-btn active" onclick="setPeriod('Q1Q2',this)">Q1–Q2 2025</button>
+          <button class="period-btn" onclick="setPeriod('2024',this)">2024</button>
+          <button class="period-btn" onclick="setPeriod('all',this)">Все годы</button>
+        </div>
+        <button class="btn btn-sm" onclick="showExport()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Экспорт
+        </button>
+      </div>
+    </div>
+
+    <!-- ALERTS BAR -->
+    <div style="margin-bottom:14px">
+      <div class="alert-box critical">⚠️ <strong>П3 СО НКО</strong> — 18 из 85 регионов ниже критического порога 15 баллов. Требуется управленческое решение.</div>
+      <div class="alert-box warning">⚡ <strong>Удержание добровольцев (Retention)</strong> — снизилось на 4 п.п. г/г. Тренд негативный в 34 регионах.</div>
+      <div class="alert-box ok">✅ <strong>Инфраструктура (П6)</strong> — 72 балла, прогресс к цели 90%. Опережает план.</div>
+    </div>
+
+    <!-- HERO ROW: GAUGE + 3 PILLARS -->
+    <div class="grid g14" style="margin-bottom:14px;align-items:start">
+      <div class="card" style="text-align:center;padding:20px 16px">
+        <div class="card-title" style="justify-content:center">Сводный индекс РФ</div>
+        <div class="gauge-wrap">
+          <svg class="gauge-svg" viewBox="0 0 200 120">
+            <path d="M20 105 A80 80 0 0 1 180 105" stroke="var(--dv)" stroke-width="16" fill="none" stroke-linecap="round"/>
+            <path id="gaugeRu" d="M20 105 A80 80 0 0 1 180 105" stroke="var(--wn)" stroke-width="16" fill="none" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="126" style="transition:stroke-dashoffset 1.2s ease,stroke .5s"/>
+            <text x="100" y="96" text-anchor="middle" font-family="Inter,sans-serif" font-size="36" font-weight="900" fill="var(--tx)" id="gaugeValRu">0</text>
+            <text x="100" y="113" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="var(--mu)">цель 2030: ≥60</text>
+          </svg>
+        </div>
+        <div style="margin-top:4px"><span class="delta up">▲ +2.8</span> <span style="font-size:11px;color:var(--mu)">vs 2024</span></div>
+        <hr class="light">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left">
+          <div><div style="font-size:10px;color:var(--mu)">Добровольцев</div><div style="font-size:16px;font-weight:800">8.2 млн</div><div style="font-size:10px;color:var(--ok)">▲ +0.8 млн</div></div>
+          <div><div style="font-size:10px;color:var(--mu)">Активных СО НКО</div><div style="font-size:16px;font-weight:800">18%</div><div style="font-size:10px;color:var(--er)">▼ −2 п.п.</div></div>
+          <div><div style="font-size:10px;color:var(--mu)">Добро.Центров</div><div style="font-size:16px;font-weight:800">3 200</div><div style="font-size:10px;color:var(--ok)">▲ +340</div></div>
+          <div><div style="font-size:10px;color:var(--mu)">Охват регионов</div><div style="font-size:16px;font-weight:800">85</div><div style="font-size:10px;color:var(--ok)">100%</div></div>
+        </div>
+      </div>
+
+      <div class="grid g3">
+        <!-- PILLAR: ЛЮДИ -->
+        <div class="pillar" style="border-top:3px solid var(--pr)">
+          <div class="pillar-head">
+            <div>
+              <div class="pillar-name" style="color:var(--pr)">👥 Люди</div>
+              <div class="pillar-sub">П1 · П2 · Граждане</div>
+            </div>
+            <div style="text-align:right">
+              <div class="pillar-score" style="color:var(--pr)">45</div>
+              <div style="font-size:10px"><span class="delta up">▲ +1.4</span></div>
+            </div>
+          </div>
+          <div class="prog thick"><div class="prog-bar" style="width:64%;background:var(--pr)"></div></div>
+          <div style="font-size:9px;color:var(--mu);text-align:right;margin-top:2px">64% к цели ≥70</div>
+          <div class="ind-list">
+            <div class="ind-item"><span class="ind-name">📊 Охват добровольцами</span><span class="ind-val" style="color:var(--wn)">5.6%</span></div>
+            <div class="ind-item"><span class="ind-name">📊 Охват молодёжи 14–35</span><span class="ind-val" style="color:var(--ok)">11.2%</span></div>
+            <div class="ind-item"><span class="ind-name">🔄 Глубина ПД/чел./год</span><span class="ind-val" style="color:var(--ok)">3.8</span></div>
+            <div class="ind-item"><span class="ind-name">🔁 Retention 12 мес.</span><span class="ind-val" style="color:var(--er)">61%</span></div>
+            <div class="ind-item"><span class="ind-name">💰 Помогающих практик, %</span><span class="ind-val" style="color:var(--wn)">38%</span></div>
+            <div class="ind-item"><span class="ind-name">🌾 Серебряные волонтёры (55+)</span><span class="ind-val" style="color:var(--mu)">12%</span></div>
+          </div>
+          <hr class="light">
+          <button class="btn btn-sm" onclick="showPage('people')" style="width:100%;justify-content:center">Подробнее →</button>
+        </div>
+
+        <!-- PILLAR: ОРГАНИЗАЦИИ -->
+        <div class="pillar" style="border-top:3px solid var(--te)">
+          <div class="pillar-head">
+            <div>
+              <div class="pillar-name" style="color:var(--te)">🏢 Организации</div>
+              <div class="pillar-sub">П3 · П4 · П7</div>
+            </div>
+            <div style="text-align:right">
+              <div class="pillar-score" style="color:var(--te)">30</div>
+              <div style="font-size:10px"><span class="delta dn">▼ −0.4</span></div>
+            </div>
+          </div>
+          <div class="prog thick"><div class="prog-bar" style="width:43%;background:var(--er)"></div></div>
+          <div style="font-size:9px;color:var(--mu);text-align:right;margin-top:2px">43% к цели ≥70</div>
+          <div class="ind-list">
+            <div class="ind-item"><span class="ind-name">🏛 Активных СО НКО</span><span class="ind-val" style="color:var(--er)">18%</span></div>
+            <div class="ind-item"><span class="ind-name">🎓 ОО в проектах ДНЖ</span><span class="ind-val" style="color:var(--wn)">35%</span></div>
+            <div class="ind-item"><span class="ind-name">💼 Компании с КВ</span><span class="ind-val" style="color:var(--wn)">2.1%</span></div>
+            <div class="ind-item"><span class="ind-name">📚 Обучение служением</span><span class="ind-val" style="color:var(--ok)">24 тыс.</span></div>
+            <div class="ind-item"><span class="ind-name">🏆 Победители ФПГ/ПФКИ</span><span class="ind-val" style="color:var(--wn)">1 240</span></div>
+            <div class="ind-item"><span class="ind-name">📈 НКО: success rate ФПГ</span><span class="ind-val" style="color:var(--er)">D₂/4</span></div>
+          </div>
+          <hr class="light">
+          <button class="btn btn-sm" onclick="showPage('orgs')" style="width:100%;justify-content:center">Подробнее →</button>
+        </div>
+
+        <!-- PILLAR: ИНФРАСТРУКТУРА -->
+        <div class="pillar" style="border-top:3px solid var(--go)">
+          <div class="pillar-head">
+            <div>
+              <div class="pillar-name" style="color:var(--go)">🏗 Инфраструктура</div>
+              <div class="pillar-sub">П5 · П6 · Поддержка</div>
+            </div>
+            <div style="text-align:right">
+              <div class="pillar-score" style="color:var(--go)">66</div>
+              <div style="font-size:10px"><span class="delta up">▲ +3.2</span></div>
+            </div>
+          </div>
+          <div class="prog thick"><div class="prog-bar" style="width:86%;background:var(--ok)"></div></div>
+          <div style="font-size:9px;color:var(--mu);text-align:right;margin-top:2px">86% к цели ≥77</div>
+          <div class="ind-list">
+            <div class="ind-item"><span class="ind-name">🗺 Охват ДЦ (население)</span><span class="ind-val" style="color:var(--ok)">89%</span></div>
+            <div class="ind-item"><span class="ind-name">🏠 Добро.Центров</span><span class="ind-val" style="color:var(--ok)">3 200</span></div>
+            <div class="ind-item"><span class="ind-name">💵 Господдержка ₽/чел.</span><span class="ind-val" style="color:var(--wn)">142₽</span></div>
+            <div class="ind-item"><span class="ind-name">🎓 Обучено сотр. РЦ/ДЦ</span><span class="ind-val" style="color:var(--wn)">78%</span></div>
+            <div class="ind-item"><span class="ind-name">⚖️ МВС запущены</span><span class="ind-val" style="color:var(--ok)">100%</span></div>
+            <div class="ind-item"><span class="ind-name">📑 Регион. программы</span><span class="ind-val" style="color:var(--wn)">68/85</span></div>
+          </div>
+          <hr class="light">
+          <button class="btn btn-sm" onclick="showPage('infra')" style="width:100%;justify-content:center">Подробнее →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FO SECTION -->
+    <div class="sec-div">Федеральные округа <span style="font-weight:400;font-size:10px;color:var(--fa)">Сводный индекс ДНЖ</span></div>
+    <div class="grid g23" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">Рейтинг ФО</div>
+        <div id="foTable"></div>
+      </div>
+      <div class="grid" style="grid-template-rows:auto auto;gap:14px">
+        <div class="card">
+          <div class="card-title">Динамика по ФО (2022–2025)</div>
+          <div class="ch ch-200"><canvas id="cFoDyn"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Три блока — динамика по России</div>
+          <div class="ch ch-200"><canvas id="cRuBlocks"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEATMAP -->
+    <div class="sec-div">Тепловая карта регионов по сводному индексу <span style="font-weight:400;font-size:10px;color:var(--fa)">Нажмите на регион → перейти к детализации</span></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="heatmap-wrap" id="heatmapWrap"></div>
+    </div>
+
+    <div class="sec-div">Дополнительные управленческие показатели страны</div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Благополучатели</div><div class="kpi-value">24.6<span class="kpi-unit">млн</span></div><div class="kpi-meta"><span class="delta up">▲ +2.1 млн</span> · 168 на 1000 жителей</div><div class="prog sm"><div class="prog-bar" style="width:78%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Внебюджет СО НКО</div><div class="kpi-value">146<span class="kpi-unit">млрд ₽</span></div><div class="kpi-meta"><span class="delta up">▲ +14%</span> · 998₽/жителя</div><div class="prog sm"><div class="prog-bar" style="width:73%;background:var(--te)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Leverage бюджета</div><div class="kpi-value">2.4<span class="kpi-unit">x</span></div><div class="kpi-meta">на 1 рубль господдержки</div><div class="prog sm"><div class="prog-bar" style="width:64%;background:var(--pr)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Риск-контур</div><div class="kpi-value" style="color:var(--er)">18<span class="kpi-unit">красных</span></div><div class="kpi-meta">регионов по П3 · 12 по retention</div><div class="prog sm"><div class="prog-bar" style="width:36%;background:var(--er)"></div></div></div>
+    </div>
+
+    <!-- TOP/BOTTOM -->
+    <div class="grid g2">
+      <div class="card">
+        <div class="card-title">🏆 Топ-10 лидеров</div>
+        <table class="tbl"><thead><tr><th>#</th><th>Регион</th><th style="text-align:right">Индекс</th><th>▲/▼</th><th>Прогноз</th></tr></thead>
+        <tbody id="topRegs"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-title">🔻 Требуют внимания</div>
+        <table class="tbl"><thead><tr><th>#</th><th>Регион</th><th style="text-align:right">Индекс</th><th>▲/▼</th><th>Статус</th></tr></thead>
+        <tbody id="botRegs"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: REGION ===== -->
+  <div class="page" id="page-region">
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">Россия → <span id="regFO">ЦФО</span></div>
+        <div class="page-title" id="regTitle">Московская область</div>
+        <div class="page-subtitle" id="regSubtitle">Рейтинг: #8 из 85 · Обновлено: май 2025</div>
+      </div>
+      <div class="header-actions no-print">
+        <div class="region-selector">
+          <label style="font-size:11px;color:var(--mu)">Регион:</label>
+          <select id="regSelect" onchange="changeRegion(this.value)" style="min-width:180px">
+            <option value="msk_obl">Московская область</option>
+            <option value="spb">Санкт-Петербург</option>
+            <option value="tat">Республика Татарстан</option>
+            <option value="krd">Краснодарский край</option>
+            <option value="svr">Свердловская область</option>
+            <option value="nov">Новосибирская область</option>
+            <option value="dag">Республика Дагестан</option>
+            <option value="tva">Республика Тыва</option>
+          </select>
+        </div>
+        <button class="btn btn-sm" onclick="print()">🖨 Печать</button>
+      </div>
+    </div>
+
+    <div class="grid g14" style="margin-bottom:14px">
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-title">Профиль региона</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div><div style="font-size:32px;font-weight:900;font-variant-numeric:tabular-nums" id="regScore">58</div><div style="font-size:11px;color:var(--mu)">Сводный индекс</div></div>
+            <div style="text-align:right"><span class="badge badge-warn" id="regBadge">В работе</span><div style="font-size:11px;color:var(--mu);margin-top:4px">цель 2030: ≥60</div></div>
+          </div>
+          <div class="prog" style="height:6px;margin-bottom:8px"><div class="prog-bar" id="regProg" style="width:58%;background:var(--wn)"></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div style="font-size:11px;color:var(--mu)">Нас. региона</div><div style="font-size:11px;font-weight:700" id="regPop">8.2 млн</div>
+            <div style="font-size:11px;color:var(--mu)">Рейтинг в РФ</div><div style="font-size:11px;font-weight:700" id="regRank">#8</div>
+            <div style="font-size:11px;color:var(--mu)">Изменение г/г</div><div style="font-size:11px;font-weight:700" id="regDelta" class="delta up">▲ +2.1</div>
+            <div style="font-size:11px;color:var(--mu)">Прогноз 2030</div><div style="font-size:11px;font-weight:700;color:var(--ok)" id="regForecast">≥62</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">П1–П7 vs медиана РФ</div>
+          <div class="radar-wrap"><canvas id="cRegRadar"></canvas></div>
+        </div>
+      </div>
+      <div>
+        <div class="tab-bar">
+          <button class="tab active" onclick="switchRegTab('people')">👥 Люди</button>
+          <button class="tab" onclick="switchRegTab('orgs')">🏢 Орг.</button>
+          <button class="tab" onclick="switchRegTab('infra')">🏗 Инфра</button>
+          <button class="tab" onclick="switchRegTab('dynamics')">📈 Динамика</button>
+        </div>
+        <div class="tab-panel active" id="regTab-people">
+          <div class="grid g2" style="margin-bottom:10px">
+            <div class="kpi-card"><div class="kpi-label">Охват добровольцами</div><div class="kpi-value" style="color:var(--wn)">6.8%</div><div class="kpi-meta"><span class="delta up">▲ +0.9 п.п.</span> · цель 14%</div><div class="prog sm"><div class="prog-bar" style="width:49%;background:var(--wn)"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">Retention 12 мес.</div><div class="kpi-value" style="color:var(--er)">58%</div><div class="kpi-meta"><span class="delta dn">▼ −3 п.п.</span></div><div class="prog sm"><div class="prog-bar" style="width:58%;background:var(--er)"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">Глубина ПД/чел.</div><div class="kpi-value" style="color:var(--ok)">4.2</div><div class="kpi-meta">цель: ≥3 · выполнено</div><div class="prog sm"><div class="prog-bar" style="width:100%;background:var(--ok)"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">Молодёжь 14–35</div><div class="kpi-value" style="color:var(--wn)">9.4%</div><div class="kpi-meta">цель: 14%</div><div class="prog sm"><div class="prog-bar" style="width:67%;background:var(--wn)"></div></div></div>
+          </div>
+          <div class="card"><div class="card-title">Возрастная когорта добровольцев</div><div class="ch ch-200"><canvas id="cRegCohort"></canvas></div></div>
+        </div>
+        <div class="tab-panel" id="regTab-orgs">
+          <div class="grid g2" style="margin-bottom:10px">
+            <div class="kpi-card"><div class="kpi-label">Активных СО НКО</div><div class="kpi-value" style="color:var(--wn)">22%</div><div class="kpi-meta">цель: 30%</div><div class="prog sm"><div class="prog-bar" style="width:73%;background:var(--wn)"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">ОО в проектах</div><div class="kpi-value" style="color:var(--wn)">41%</div><div class="kpi-meta">цель: 50%</div><div class="prog sm"><div class="prog-bar" style="width:82%;background:var(--wn)"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">Компании с КВ</div><div class="kpi-value" style="color:var(--wn)">3.2%</div><div class="kpi-meta">цель: 5%</div><div class="prog sm"><div class="prog-bar" style="width:64%;background:var(--wn)"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">Обучение служением</div><div class="kpi-value" style="color:var(--ok)">4 200</div><div class="kpi-meta"><span class="delta up">▲ +28%</span></div><div class="prog sm"><div class="prog-bar" style="width:85%;background:var(--ok)"></div></div></div>
+          </div>
+          <div class="card"><div class="card-title">Диверсификация СО НКО</div><div class="ch ch-200"><canvas id="cRegOrgs"></canvas></div></div>
+        </div>
+        <div class="tab-panel" id="regTab-infra">
+          <div class="grid g2" style="margin-bottom:10px">
+            <div class="kpi-card"><div class="kpi-label">Охват ДЦ</div><div class="kpi-value" style="color:var(--ok)">92%</div><div class="kpi-meta"><span class="delta up">▲ +8 п.п.</span></div><div class="prog sm"><div class="prog-bar" style="width:92%;background:var(--ok)"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">Добро.Центров</div><div class="kpi-value" style="color:var(--ok)">142</div><div class="kpi-meta"><span class="delta up">▲ +18</span></div><div class="prog sm"><div class="prog-bar" style="width:88%;background:var(--ok)"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">Господдержка ₽/чел.</div><div class="kpi-value" style="color:var(--wn)">168₽</div><div class="kpi-meta">цель: 200₽</div><div class="prog sm"><div class="prog-bar" style="width:84%;background:var(--wn)"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">Обучено сотр. РЦ/ДЦ</div><div class="kpi-value" style="color:var(--ok)">88%</div><div class="kpi-meta">цель: 100%</div><div class="prog sm"><div class="prog-bar" style="width:88%;background:var(--ok)"></div></div></div>
+          </div>
+          <div class="card"><div class="card-title">Динамика П5 и П6</div><div class="ch ch-200"><canvas id="cRegInfra"></canvas></div></div>
+        </div>
+        <div class="tab-panel" id="regTab-dynamics">
+          <div class="card"><div class="card-title">Сводный индекс 2022–2025</div><div class="ch ch-240"><canvas id="cRegDyn"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: COMPARE ===== -->
+  <div class="page" id="page-compare">
+    <div class="page-header">
+      <div><div class="page-title">📊 Сравнение регионов</div><div class="page-subtitle">До 4 регионов одновременно по всем индексам</div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">Выбор регионов</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="cmpReg1" style="border:1px solid var(--bd);border-radius:var(--r);padding:4px 8px;background:var(--sf);color:var(--tx);font-size:12px;font-family:var(--font)">
+          <option>Московская область</option><option>Татарстан</option><option>Краснодарский кр.</option><option>Свердловская обл.</option>
+        </select>
+        <select id="cmpReg2" style="border:1px solid var(--bd);border-radius:var(--r);padding:4px 8px;background:var(--sf);color:var(--tx);font-size:12px;font-family:var(--font)">
+          <option>Санкт-Петербург</option><option>Татарстан</option><option>Новосибирская обл.</option>
+        </select>
+        <select id="cmpReg3" style="border:1px solid var(--bd);border-radius:var(--r);padding:4px 8px;background:var(--sf);color:var(--tx);font-size:12px;font-family:var(--font)">
+          <option>Татарстан</option><option>Краснодарский кр.</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="renderCompare()">Сравнить</button>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Радар — все П1–П7</div><div class="ch ch-280"><canvas id="cCmpRadar"></canvas></div></div>
+      <div class="card"><div class="card-title">Гистограмма по индексам</div><div class="ch ch-280"><canvas id="cCmpBar"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Детальное сравнение</div>
+      <table class="tbl"><thead><tr><th>Индикатор</th><th>Моск. обл.</th><th>СПб</th><th>Татарстан</th><th>РФ (медиана)</th></tr></thead>
+      <tbody id="cmpTable"></tbody></table>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: RATING ===== -->
+  <div class="page" id="page-rating">
+    <div class="page-header">
+      <div><div class="page-title">🏆 Рейтинг регионов</div><div class="page-subtitle">Сводный индекс ДНЖ · 85 субъектов РФ</div></div>
+      <div class="header-actions">
+        <select id="ratingSort" onchange="renderRating()" style="border:1px solid var(--bd);border-radius:var(--r);padding:4px 8px;background:var(--sf);color:var(--tx);font-size:12px;font-family:var(--font)">
+          <option value="score">По индексу</option>
+          <option value="p1">По П1</option>
+          <option value="p3">По П3</option>
+          <option value="p6">По П6</option>
+          <option value="delta">По росту</option>
+        </select>
+        <select id="ratingFO" onchange="renderRating()" style="border:1px solid var(--bd);border-radius:var(--r);padding:4px 8px;background:var(--sf);color:var(--tx);font-size:12px;font-family:var(--font)">
+          <option value="all">Все ФО</option>
+          <option value="ЦФО">ЦФО</option>
+          <option value="СЗФО">СЗФО</option>
+          <option value="ЮФО">ЮФО</option>
+          <option value="СКФО">СКФО</option>
+          <option value="ПФО">ПФО</option>
+          <option value="УФО">УФО</option>
+          <option value="СФО">СФО</option>
+          <option value="ДФО">ДФО</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Распределение регионов по индексу</div><div class="ch ch-200"><canvas id="cRatingHist"></canvas></div></div>
+      <div class="card"><div class="card-title">Прогресс к целям 2030 по ФО</div><div class="ch ch-200"><canvas id="cRatingFO"></canvas></div></div>
+    </div>
+    <div class="card">
+      <table class="tbl" id="ratingTable">
+        <thead><tr><th>#</th><th>Регион</th><th>ФО</th><th style="text-align:right">Индекс</th><th style="text-align:right">П1</th><th style="text-align:right">П3</th><th style="text-align:right">П6</th><th>▲/▼</th><th>Статус</th></tr></thead>
+        <tbody id="ratingBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: PEOPLE ===== -->
+  <div class="page" id="page-people">
+    <div class="page-header">
+      <div><div class="page-title">👥 Люди — Граждане</div><div class="page-subtitle">П1 · П2 · Социальная активность и помогающие практики</div></div>
+      <div class="header-actions"><span class="badge badge-warn">П1 = 47 / цель ≥70</span><span class="badge badge-warn">П2 = 38 / цель ≥50</span></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Добровольцев (млн)</div><div class="kpi-value">8.2<span class="kpi-unit">млн</span></div><div class="kpi-meta"><span class="delta up">▲ +0.8 млн г/г</span></div><div class="prog sm"><div class="prog-bar" style="width:41%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Охват населения</div><div class="kpi-value">5.6<span class="kpi-unit">%</span></div><div class="kpi-meta">цель: 14% к 2030</div><div class="prog sm"><div class="prog-bar" style="width:40%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Retention 12 мес.</div><div class="kpi-value" style="color:var(--er)">61<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta dn">▼ −4 п.п. г/г</span></div><div class="prog sm"><div class="prog-bar" style="width:61%;background:var(--er)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Глубина ПД/чел./год</div><div class="kpi-value" style="color:var(--ok)">3.8</div><div class="kpi-meta">цель: ≥3 · <span class="delta up">выполнено</span></div><div class="prog sm"><div class="prog-bar" style="width:100%;background:var(--ok)"></div></div></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Молодёжь 14–35</div><div class="kpi-value">11.2<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta up">▲ +1.6 п.п.</span></div><div class="prog sm"><div class="prog-bar" style="width:80%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Серебряные волонтёры (55+)</div><div class="kpi-value">12<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta flat">≈ без изменений</span></div><div class="prog sm"><div class="prog-bar" style="width:40%;background:var(--mu)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Помогающих практик (доля)</div><div class="kpi-value">38<span class="kpi-unit">%</span></div><div class="kpi-meta">цель: 50%</div><div class="prog sm"><div class="prog-bar" style="width:76%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Конверсия → первое ПД</div><div class="kpi-value">34<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta dn">▼ −2 п.п.</span></div><div class="prog sm"><div class="prog-bar" style="width:34%;background:var(--er)"></div></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Динамика П1 и П2 (2022–2025)</div><div class="ch ch-220"><canvas id="cPeopleDyn"></canvas></div></div>
+      <div class="card"><div class="card-title">Когортный анализ по возрасту</div><div class="ch ch-220"><canvas id="cPeopleCohort"></canvas></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Воронка вовлечения (конверсии)</div><div class="ch ch-220"><canvas id="cPeopleFunnel"></canvas></div></div>
+      <div class="card"><div class="card-title">Retention и Churn (12 мес.)</div><div class="ch ch-220"><canvas id="cPeopleRetention"></canvas></div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><div class="card-title">Рейтинг регионов по П1</div>
+        <table class="tbl"><thead><tr><th>#</th><th>Регион</th><th style="text-align:right">П1</th><th style="text-align:right">%нас.</th><th>Тренд</th></tr></thead><tbody id="p1Ranking"></tbody></table>
+      </div>
+      <div class="card"><div class="card-title">Помогающие практики (топ-5 типов)</div><div class="ch ch-260"><canvas id="cPeoplePractices"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: ORGS ===== -->
+  <div class="page" id="page-orgs">
+    <div class="page-header">
+      <div><div class="page-title">🏢 Организации</div><div class="page-subtitle">П3 · П4 · П7 · СО НКО, образование, корпоративное волонтёрство</div></div>
+      <div class="header-actions"><span class="badge badge-err">П3 = 18 / цель ≥30</span><span class="badge badge-warn">П4 = 43 / цель ≥50</span></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Активных СО НКО</div><div class="kpi-value" style="color:var(--er)">18<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta dn">▼ −2 п.п.</span> · цель 30%</div><div class="prog sm"><div class="prog-bar" style="width:60%;background:var(--er)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">ОО в проектах</div><div class="kpi-value">35<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta up">▲ +3 п.п.</span> · цель 50%</div><div class="prog sm"><div class="prog-bar" style="width:70%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Компании с КВ</div><div class="kpi-value">2.1<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta up">▲ +0.3 п.п.</span> · цель 5%</div><div class="prog sm"><div class="prog-bar" style="width:42%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Обучение служением</div><div class="kpi-value">24<span class="kpi-unit">тыс.</span></div><div class="kpi-meta"><span class="delta up">▲ +18%</span></div><div class="prog sm"><div class="prog-bar" style="width:73%;background:var(--ok)"></div></div></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Победители ФПГ/ПФКИ</div><div class="kpi-value">1 240</div><div class="kpi-meta"><span class="delta up">▲ +12%</span></div><div class="prog sm"><div class="prog-bar" style="width:78%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Success rate ФПГ</div><div class="kpi-value" style="color:var(--wn)">14<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta up">▲ +1 п.п.</span></div><div class="prog sm"><div class="prog-bar" style="width:56%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Корп. волонтёров</div><div class="kpi-value">340<span class="kpi-unit">тыс.</span></div><div class="kpi-meta">цель: 15% работающих</div><div class="prog sm"><div class="prog-bar" style="width:38%;background:var(--er)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Диверсификация НКО (D)</div><div class="kpi-value" style="color:var(--er)">2/4</div><div class="kpi-meta">типа активности</div><div class="prog sm"><div class="prog-bar" style="width:50%;background:var(--er)"></div></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Динамика П3, П4, П7 (2022–2025)</div><div class="ch ch-220"><canvas id="cOrgsDyn"></canvas></div></div>
+      <div class="card"><div class="card-title">Диверсификация НКО — D₁–D₄</div><div class="ch ch-220"><canvas id="cOrgsDiv"></canvas></div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><div class="card-title">Рейтинг регионов по П3</div>
+        <table class="tbl"><thead><tr><th>#</th><th>Регион</th><th style="text-align:right">П3</th><th style="text-align:right">Акт.%</th><th>Тренд</th></tr></thead><tbody id="p3Ranking"></tbody></table>
+      </div>
+      <div class="card"><div class="card-title">Корпоративное волонтёрство по ФО</div><div class="ch ch-260"><canvas id="cOrgsKV"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: INFRA ===== -->
+  <div class="page" id="page-infra">
+    <div class="page-header">
+      <div><div class="page-title">🏗 Инфраструктура</div><div class="page-subtitle">П5 · П6 · Господдержка и устойчивость инфраструктуры</div></div>
+      <div class="header-actions"><span class="badge badge-ok">П6 = 72 / цель ≥80</span><span class="badge badge-warn">П5 = 60 / цель ≥75</span></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Охват ДЦ (население)</div><div class="kpi-value" style="color:var(--ok)">89<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta up">▲ +6 п.п.</span></div><div class="prog sm"><div class="prog-bar" style="width:89%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Добро.Центров</div><div class="kpi-value">3 200</div><div class="kpi-meta"><span class="delta up">▲ +340 за год</span></div><div class="prog sm"><div class="prog-bar" style="width:80%;background:var(--go)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Господдержка ₽/чел.</div><div class="kpi-value">142<span class="kpi-unit">₽</span></div><div class="kpi-meta">цель: 200₽ · 71%</div><div class="prog sm"><div class="prog-bar" style="width:71%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Обучено сотрудников РЦ/ДЦ</div><div class="kpi-value">78<span class="kpi-unit">%</span></div><div class="kpi-meta">цель: 100%</div><div class="prog sm"><div class="prog-bar" style="width:78%;background:var(--wn)"></div></div></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">МВС функционируют</div><div class="kpi-value" style="color:var(--ok)">100<span class="kpi-unit">%</span></div><div class="kpi-meta">все 85 регионов</div><div class="prog sm"><div class="prog-bar" style="width:100%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Регион. программы утв.</div><div class="kpi-value">68<span class="kpi-unit">/85</span></div><div class="kpi-meta"><span class="delta up">▲ +8 за год</span></div><div class="prog sm"><div class="prog-bar" style="width:80%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">NPS пользователей</div><div class="kpi-value" style="color:var(--ok)">+42</div><div class="kpi-meta"><span class="delta up">▲ +7</span></div><div class="prog sm"><div class="prog-bar" style="width:71%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Соглашения ДНЖ</div><div class="kpi-value" style="color:var(--ok)">85<span class="kpi-unit">/85</span></div><div class="kpi-meta">100% регионов</div><div class="prog sm"><div class="prog-bar" style="width:100%;background:var(--ok)"></div></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Динамика П5 и П6 (2022–2025)</div><div class="ch ch-220"><canvas id="cInfraDyn"></canvas></div></div>
+      <div class="card"><div class="card-title">Охват ДЦ по ФО (%)</div><div class="ch ch-220"><canvas id="cInfraFO"></canvas></div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><div class="card-title">Рейтинг регионов по П6</div>
+        <table class="tbl"><thead><tr><th>#</th><th>Регион</th><th style="text-align:right">П6</th><th style="text-align:right">Охват ДЦ</th><th>Тренд</th></tr></thead><tbody id="p6Ranking"></tbody></table>
+      </div>
+      <div class="card"><div class="card-title">Компоненты П6 по ФО</div><div class="ch ch-260"><canvas id="cInfraComp"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: RESOURCES ===== -->
+  <div class="page" id="page-resources">
+    <div class="page-header">
+      <div><div class="page-title">💰 Ресурсы сектора СО НКО</div><div class="page-subtitle">Бюджетные и внебюджетные источники, диверсификация и финансовая устойчивость</div></div>
+      <div class="header-actions"><span class="badge badge-info">пилотный контур данных</span><span class="badge badge-warn">качество данных: mixed</span></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Совокупные поступления СО НКО</div><div class="kpi-value">208<span class="kpi-unit">млрд ₽</span></div><div class="kpi-meta"><span class="delta up">▲ +11%</span> г/г</div><div class="prog sm"><div class="prog-bar" style="width:82%;background:var(--pr)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Внебюджетные средства</div><div class="kpi-value">146<span class="kpi-unit">млрд ₽</span></div><div class="kpi-meta">70% совокупных доходов</div><div class="prog sm"><div class="prog-bar" style="width:70%;background:var(--te)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Leverage господдержки</div><div class="kpi-value">2.4<span class="kpi-unit">x</span></div><div class="kpi-meta">внебюджет / бюджет</div><div class="prog sm"><div class="prog-bar" style="width:64%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Диверсификация доходов</div><div class="kpi-value">2.7<span class="kpi-unit">/5</span></div><div class="kpi-meta">среднее число каналов</div><div class="prog sm"><div class="prog-bar" style="width:54%;background:var(--wn)"></div></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Структура доходов сектора</div><div class="ch ch-240"><canvas id="cResStructure"></canvas></div></div>
+      <div class="card"><div class="card-title">Динамика бюджета и внебюджета</div><div class="ch ch-240"><canvas id="cResDyn"></canvas></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Внебюджет на 1 жителя по ФО</div><div class="ch ch-220"><canvas id="cResFo"></canvas></div></div>
+      <div class="card"><div class="card-title">Концентрация источников дохода</div><div class="ch ch-220"><canvas id="cResMix"></canvas></div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><div class="card-title">Регионы-лидеры по финансовой устойчивости</div><table class="tbl"><thead><tr><th>#</th><th>Регион</th><th style="text-align:right">Внебюджет/жит.</th><th style="text-align:right">Leverage</th><th>Статус</th></tr></thead><tbody id="resTop"></tbody></table></div>
+      <div class="card"><div class="card-title">Источники данных для блока</div>
+        <div class="metric-detail"><div class="metric-detail-title">Обязательные источники</div><div class="metric-detail-row"><span>Минюст отчётность НКО</span><span>доходы, поступления</span></div><div class="metric-detail-row"><span>ФНС / ЕГРЮЛ</span><span>живые НКО</span></div><div class="metric-detail-row"><span>ФПГ / региональные гранты</span><span>грантовые потоки</span></div></div>
+        <div class="metric-detail"><div class="metric-detail-title">Расширенные источники</div><div class="metric-detail-row"><span>Ежеквартальная анкета СО НКО</span><span>частные пожертвования</span></div><div class="metric-detail-row"><span>ESG / нефинансовая отчётность компаний</span><span>корп. поддержка</span></div><div class="metric-detail-row"><span>CRM фандрайзинга</span><span>доноры и регулярные платежи</span></div></div>
+      </div>
+    </div>
+    <div class="sec-div">Drill-down по источникам средств</div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Вклад каналов финансирования по регионам</div><div class="ch ch-260"><canvas id="cResDrill"></canvas></div></div>
+      <div class="card"><div class="card-title">Что нужно видеть губернатору</div>
+        <div class="metric-detail"><div class="metric-detail-title">Критические вопросы</div><div class="metric-detail-row"><span>Насколько сектор зависит от бюджета?</span><span>доля бюджета в доходах</span></div><div class="metric-detail-row"><span>Есть ли устойчивые частные каналы?</span><span>физлица, бизнес, фонды</span></div><div class="metric-detail-row"><span>Кто крупнейший донор?</span><span>риск концентрации</span></div><div class="metric-detail-row"><span>Можно ли масштабировать?</span><span>leverage и повторяемость</span></div></div>
+        <div class="metric-detail"><div class="metric-detail-title">Предлагаемые источники</div><div class="metric-detail-row"><span>Минюст</span><span>обязательный контур</span></div><div class="metric-detail-row"><span>Грантооператоры</span><span>ФПГ, ПФКИ, регионы</span></div><div class="metric-detail-row"><span>Крупный бизнес</span><span>ESG / корпоративная отчетность</span></div><div class="metric-detail-row"><span>Короткая quarterly-анкета</span><span>по СО НКО региона</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: MUNICIPAL ===== -->
+  <div class="page" id="page-municipal">
+    <div class="page-header">
+      <div><div class="page-title">🗺 Муниципальный контур</div><div class="page-subtitle">Разрез по муниципалитетам: где реальные точки роста и провала внутри региона</div></div>
+      <div class="header-actions">
+        <select style="border:1px solid var(--bd);border-radius:var(--r);padding:4px 8px;background:var(--sf);color:var(--tx);font-size:12px;font-family:var(--font)"><option>Московская область</option><option>Татарстан</option><option>Краснодарский край</option></select>
+        <span class="badge badge-info">24 муниципалитета</span>
+      </div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Красные МО</div><div class="kpi-value" style="color:var(--er)">7</div><div class="kpi-meta">из 24 муниципалитетов</div><div class="prog sm"><div class="prog-bar" style="width:29%;background:var(--er)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Разрыв центр / периферия</div><div class="kpi-value">22<span class="kpi-unit">п.</span></div><div class="kpi-meta">по сводному индексу</div><div class="prog sm"><div class="prog-bar" style="width:44%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">МО с падением 2 квартала</div><div class="kpi-value">5</div><div class="kpi-meta">ранний риск-контур</div><div class="prog sm"><div class="prog-bar" style="width:21%;background:var(--er)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Охват сельских МО ДЦ</div><div class="kpi-value">61<span class="kpi-unit">%</span></div><div class="kpi-meta">цель: 80%</div><div class="prog sm"><div class="prog-bar" style="width:61%;background:var(--wn)"></div></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Распределение индекса по муниципалитетам</div><div class="ch ch-240"><canvas id="cMunDist"></canvas></div></div>
+      <div class="card"><div class="card-title">Тепловая карта муниципалитетов</div><div id="munTableWrap"></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Причины просадки: муниципальный профиль</div><div class="ch ch-240"><canvas id="cMunDrivers"></canvas></div></div>
+      <div class="card"><div class="card-title">Динамика 6 риск-муниципалитетов</div><div class="ch ch-240"><canvas id="cMunRisk"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-title">Муниципальный рейтинг</div><table class="tbl"><thead><tr><th>#</th><th>Муниципалитет</th><th style="text-align:right">Индекс</th><th style="text-align:right">Retention</th><th style="text-align:right">Охват ДЦ</th><th>Статус</th></tr></thead><tbody id="munBody"></tbody></table></div>
+  </div>
+
+  <!-- ===== PAGE: FORECAST ===== -->
+  <div class="page" id="page-forecast">
+    <div class="page-header">
+      <div><div class="page-title">📈 Сценарный прогноз до 2030</div><div class="page-subtitle">Базовый, целевой и стресс-сценарии для страны и региона</div></div>
+      <div class="header-actions"><span class="badge badge-ok">модельный контур</span><span class="badge badge-info">обновлять ежеквартально</span></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Вероятность достижения цели 2030</div><div class="kpi-value">64<span class="kpi-unit">%</span></div><div class="kpi-meta">при базовом темпе</div><div class="prog sm"><div class="prog-bar" style="width:64%;background:var(--wn)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">При ускоренном сценарии</div><div class="kpi-value">81<span class="kpi-unit">%</span></div><div class="kpi-meta">с инвестициями в retention и П3</div><div class="prog sm"><div class="prog-bar" style="width:81%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Стресс-сценарий</div><div class="kpi-value" style="color:var(--er)">47<span class="kpi-unit">%</span></div><div class="kpi-meta">при стагнации внебюджета</div><div class="prog sm"><div class="prog-bar" style="width:47%;background:var(--er)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Ключевой драйвер</div><div class="kpi-value">P3</div><div class="kpi-meta">ресурсность и живые СО НКО</div><div class="prog sm"><div class="prog-bar" style="width:72%;background:var(--te)"></div></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Сводный индекс РФ до 2030</div><div class="ch ch-260"><canvas id="cFrcMain"></canvas></div></div>
+      <div class="card"><div class="card-title">Какие индексы тянут сценарий вниз</div><div class="ch ch-260"><canvas id="cFrcDrivers"></canvas></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Сценарии по трём блокам</div><div class="ch ch-240"><canvas id="cFrcBlocks"></canvas></div></div>
+      <div class="card"><div class="card-title">Управленческие рычаги</div>
+        <div class="metric-detail"><div class="metric-detail-title">Топ-4 меры с максимальным эффектом</div><div class="metric-detail-row"><span>Поднять retention на +8 п.п.</span><span>+3.1 п. к сводному</span></div><div class="metric-detail-row"><span>Очистить П3 от «мёртвых» НКО</span><span>+2.4 п.</span></div><div class="metric-detail-row"><span>Увеличить внебюджет на 20%</span><span>+2.0 п.</span></div><div class="metric-detail-row"><span>Добро.Центры в сельских МО</span><span>+1.8 п.</span></div></div>
+        <div class="metric-detail"><div class="metric-detail-title">Ключевые риски</div><div class="metric-detail-row"><span>Падение retention</span><span>высокий</span></div><div class="metric-detail-row"><span>Стагнация П7</span><span>средний</span></div><div class="metric-detail-row"><span>Зависимость НКО от бюджета</span><span>высокий</span></div><div class="metric-detail-row"><span>Слабый сельский охват</span><span>высокий</span></div></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">Сценарная таблица до 2030</div><table class="tbl"><thead><tr><th>Сценарий</th><th style="text-align:right">Сводный индекс</th><th style="text-align:right">П1</th><th style="text-align:right">П3</th><th style="text-align:right">П6</th><th style="text-align:right">Вероятность достижения</th></tr></thead><tbody id="frcBody"></tbody></table></div>
+  </div>
+
+  <!-- ===== PAGE: IMPACT ===== -->
+  <div class="page" id="page-impact">
+    <div class="page-header">
+      <div><div class="page-title">🎯 Эффект и благополучатели</div><div class="page-subtitle">Не только процессы, но и результат: кому и какой эффект приносит система ДНЖ</div></div>
+      <div class="header-actions"><span class="badge badge-ok">выходной контур</span><span class="badge badge-info">частично survey-based</span></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-label">Благополучатели</div><div class="kpi-value">24.6<span class="kpi-unit">млн</span></div><div class="kpi-meta">168 на 1000 жителей</div><div class="prog sm"><div class="prog-bar" style="width:78%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Повторные благополучатели</div><div class="kpi-value">39<span class="kpi-unit">%</span></div><div class="kpi-meta"><span class="delta up">▲ +3 п.п.</span></div><div class="prog sm"><div class="prog-bar" style="width:58%;background:var(--pr)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Стоимость 1 благополучателя</div><div class="kpi-value">846<span class="kpi-unit">₽</span></div><div class="kpi-meta"><span class="delta dn">▼ −6%</span> г/г</div><div class="prog sm"><div class="prog-bar" style="width:72%;background:var(--ok)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-label">Проекты с измеренным эффектом</div><div class="kpi-value">28<span class="kpi-unit">%</span></div><div class="kpi-meta">главная зона роста</div><div class="prog sm"><div class="prog-bar" style="width:28%;background:var(--er)"></div></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Благополучатели по направлениям</div><div class="ch ch-240"><canvas id="cImpAreas"></canvas></div></div>
+      <div class="card"><div class="card-title">Стоимость результата и охват</div><div class="ch ch-240"><canvas id="cImpScatter"></canvas></div></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">Изменение эффекта по годам</div><div class="ch ch-220"><canvas id="cImpDyn"></canvas></div></div>
+      <div class="card"><div class="card-title">Каналы достижения благополучателей</div><div class="ch ch-220"><canvas id="cImpChannels"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Что важно видеть губернатору</div>
+      <div class="grid g2">
+        <div class="metric-detail"><div class="metric-detail-title">Управленческие вопросы</div><div class="metric-detail-row"><span>Кому помогает система?</span><span>целевые группы</span></div><div class="metric-detail-row"><span>Где эффект выше?</span><span>по муниципалитетам</span></div><div class="metric-detail-row"><span>Сколько стоит результат?</span><span>эффективность расходов</span></div><div class="metric-detail-row"><span>Есть ли доказанный эффект?</span><span>опросы, оценка воздействия</span></div></div>
+        <div class="metric-detail"><div class="metric-detail-title">Новые KPI для региона</div><div class="metric-detail-row"><span>Благополучатели / 1000 жителей</span><span>обязательный</span></div><div class="metric-detail-row"><span>Стоимость 1 благополучателя</span><span>обязательный</span></div><div class="metric-detail-row"><span>Повторное обращение</span><span>как proxy качества</span></div><div class="metric-detail-row"><span>Доля проектов с оценкой результата</span><span>контур зрелости</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: INDEXES ===== -->
+  <div class="page" id="page-indexes">
+    <div class="page-header">
+      <div><div class="page-title">📐 Индексы П1–П7</div><div class="page-subtitle">Прогресс к целям 2030 по каждому индексу</div></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="idx-card"><div class="idx-num">П1</div><div class="idx-name">Социальная активность граждан</div><div class="idx-score" style="color:var(--wn)">47</div><div class="prog" style="margin:6px 0 4px"><div class="prog-bar" style="width:67%;background:var(--wn)"></div></div><div class="idx-target">≥70 · прогресс 67%</div></div>
+      <div class="idx-card"><div class="idx-num">П2</div><div class="idx-name">Помогающие действия граждан</div><div class="idx-score" style="color:var(--wn)">38</div><div class="prog" style="margin:6px 0 4px"><div class="prog-bar" style="width:76%;background:var(--wn)"></div></div><div class="idx-target">≥50 · прогресс 76%</div></div>
+      <div class="idx-card"><div class="idx-num">П3</div><div class="idx-name">Активность СО НКО</div><div class="idx-score" style="color:var(--er)">18</div><div class="prog" style="margin:6px 0 4px"><div class="prog-bar" style="width:60%;background:var(--er)"></div></div><div class="idx-target">≥30 · прогресс 60%</div></div>
+      <div class="idx-card"><div class="idx-num">П4</div><div class="idx-name">Активность образовательных орг.</div><div class="idx-score" style="color:var(--wn)">43</div><div class="prog" style="margin:6px 0 4px"><div class="prog-bar" style="width:86%;background:var(--wn)"></div></div><div class="idx-target">≥50 · прогресс 86%</div></div>
+      <div class="idx-card"><div class="idx-num">П5</div><div class="idx-name">Государственная поддержка</div><div class="idx-score" style="color:var(--ok)">60</div><div class="prog" style="margin:6px 0 4px"><div class="prog-bar" style="width:80%;background:var(--ok)"></div></div><div class="idx-target">≥75 · прогресс 80%</div></div>
+      <div class="idx-card"><div class="idx-num">П6</div><div class="idx-name">Устойчивость инфраструктуры</div><div class="idx-score" style="color:var(--ok)">72</div><div class="prog" style="margin:6px 0 4px"><div class="prog-bar" style="width:90%;background:var(--ok)"></div></div><div class="idx-target">≥80 · прогресс 90%</div></div>
+      <div class="idx-card"><div class="idx-num">П7</div><div class="idx-name">Корпоративное волонтёрство</div><div class="idx-score" style="color:var(--er)">26</div><div class="prog" style="margin:6px 0 4px"><div class="prog-bar" style="width:52%;background:var(--er)"></div></div><div class="idx-target">≥50 · прогресс 52%</div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><div class="card-title">Динамика всех 7 индексов (РФ)</div><div class="ch ch-280"><canvas id="cIdxAllDyn"></canvas></div></div>
+      <div class="card"><div class="card-title">Прогресс к цели 2030</div><div class="ch ch-280"><canvas id="cIdxProgress"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: METHODOLOGY ===== -->
+  <div class="page" id="page-methodology">
+    <div class="page-header">
+      <div><div class="page-title">📋 Методика расчёта</div><div class="page-subtitle">Переработанная методика композитных индексов ДНЖ v3</div></div>
+    </div>
+    <div class="alert-box info" style="margin-bottom:14px">ℹ️ Все 7 индексов приведены к <strong>единой шкале 0–100</strong>. Сводный индекс рассчитывается как взвешенное среднее: П1×0.25 + П2×0.15 + П3×0.10 + П4×0.15 + П5×0.10 + П6×0.15 + П7×0.10</div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div>
+        <div class="methodology-section">
+          <div class="sec-div">П1 · Социальная активность граждан</div>
+          <div class="formula-box">П1 = √(ОХВАТ_норм × ГЛУБИНА_норм)</div>
+          <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Среднее геометрическое — регион не может компенсировать массовостью низкую глубину</div>
+          <div class="weight-row"><span style="width:100px;flex-shrink:0">Охват</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:50%;background:var(--pr)"></div></div><span style="width:30px;text-align:right;font-variant-numeric:tabular-nums">50%</span></div>
+          <div class="weight-row"><span style="width:100px;flex-shrink:0">Глубина ПД</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:50%;background:var(--pr)"></div></div><span style="width:30px;text-align:right;font-variant-numeric:tabular-nums">50%</span></div>
+          <div style="font-size:11px;color:var(--mu);margin-top:6px">Цель: ≥70 к 2030 (14% охвата, 3 ПД/чел.)</div>
+        </div>
+        <div class="methodology-section">
+          <div class="sec-div">П2 · Помогающие действия</div>
+          <div class="formula-box">П2 = 0.6×ДОЛЯ_норм + 0.4×ИНТЕНС_норм</div>
+          <div class="weight-row"><span style="width:100px;flex-shrink:0">Доля (0.6)</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:60%;background:var(--te)"></div></div><span style="width:30px;text-align:right">60%</span></div>
+          <div class="weight-row"><span style="width:100px;flex-shrink:0">Интенс. (0.4)</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:40%;background:var(--te)"></div></div><span style="width:30px;text-align:right">40%</span></div>
+          <div style="font-size:11px;color:var(--mu);margin-top:6px">Цель: ≥50. 5 помогающих ПД/год на активного гражданина</div>
+        </div>
+        <div class="methodology-section">
+          <div class="sec-div">П3 · Активность СО НКО</div>
+          <div class="formula-box">П3 = 0.5×ОХВАТ + 0.3×РАЗНООБРАЗИЕ + 0.2×РЕСУРС</div>
+          <div class="weight-row"><span style="width:120px;flex-shrink:0">Охват СО НКО</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:50%;background:var(--go)"></div></div><span style="width:30px;text-align:right">50%</span></div>
+          <div class="weight-row"><span style="width:120px;flex-shrink:0">Разнообразие</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:30%;background:var(--go)"></div></div><span style="width:30px;text-align:right">30%</span></div>
+          <div class="weight-row"><span style="width:120px;flex-shrink:0">Ресурсность</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:20%;background:var(--go)"></div></div><span style="width:30px;text-align:right">20%</span></div>
+          <div style="font-size:11px;color:var(--mu);margin-top:6px">Цель: ≥30. 30% активных СО НКО от реестра МЭР</div>
+        </div>
+        <div class="methodology-section">
+          <div class="sec-div">П4 · Активность ОО</div>
+          <div class="formula-box">П4 = ∛(ОО_норм × ОБУЧ_норм × ОС_норм)</div>
+          <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Геометрическое из трёх — школы, студенты, «Обучение служением»</div>
+          <div style="font-size:11px;color:var(--mu)">Цель: ≥50. Подиндексы: П4.1 Школы · П4.2 СПО · П4.3 Вузы</div>
+        </div>
+      </div>
+      <div>
+        <div class="methodology-section">
+          <div class="sec-div">П5 · Государственная поддержка</div>
+          <div class="formula-box">П5 = 0.5×КАЧЕСТВО + 0.5×ОБЪЁМ_норм</div>
+          <div class="weight-row"><span style="width:120px;flex-shrink:0">Соглашение ДНЖ</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:10%;background:var(--wn)"></div></div><span style="width:30px;text-align:right">10%</span></div>
+          <div class="weight-row"><span style="width:120px;flex-shrink:0">Прогр. добровол.</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:10%;background:var(--wn)"></div></div><span style="width:30px;text-align:right">10%</span></div>
+          <div class="weight-row"><span style="width:120px;flex-shrink:0">Прогр. НКО</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:10%;background:var(--wn)"></div></div><span style="width:30px;text-align:right">10%</span></div>
+          <div class="weight-row"><span style="width:120px;flex-shrink:0">6 типов мер поддержки</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:60%;background:var(--wn)"></div></div><span style="width:30px;text-align:right">52%</span></div>
+          <div style="font-size:11px;color:var(--mu);margin-top:6px">Цель: ≥75. Подушевой объём: целевой 200₽/чел./год</div>
+        </div>
+        <div class="methodology-section">
+          <div class="sec-div">П6 · Устойчивость инфраструктуры</div>
+          <div class="formula-box">П6 = 0.6×СТРУКТУРА + 0.4×КВАЛИФИКАЦИЯ</div>
+          <div class="weight-row"><span style="width:130px;flex-shrink:0">РЦ (наличие)</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:35%;background:var(--pr)"></div></div><span style="width:30px;text-align:right">35%</span></div>
+          <div class="weight-row"><span style="width:130px;flex-shrink:0">Добро.Центры</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:25%;background:var(--pr)"></div></div><span style="width:30px;text-align:right">25%</span></div>
+          <div class="weight-row"><span style="width:130px;flex-shrink:0">МВС</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:20%;background:var(--pr)"></div></div><span style="width:30px;text-align:right">20%</span></div>
+          <div class="weight-row"><span style="width:130px;flex-shrink:0">Штаб #МЫВМЕСТЕ</span><div class="weight-bar-wrap"><div class="weight-bar" style="width:20%;background:var(--pr)"></div></div><span style="width:30px;text-align:right">20%</span></div>
+          <div style="font-size:11px;color:var(--mu);margin-top:6px">Цель: ≥80. Квалификация: 100% обучения РЦ/ДЦ ежегодно</div>
+        </div>
+        <div class="methodology-section">
+          <div class="sec-div">П7 · Корпоративное волонтёрство</div>
+          <div class="formula-box">До 2027: П7 = √(КОМПАНИИ × ВОЛОНТЁРЫ)<br>С 2027: П7 = ∛(КОМПАНИИ × ВОЛОНТЁРЫ × КАЧЕСТВО)</div>
+          <div style="font-size:11px;color:var(--mu);margin-top:6px">Цель: ≥50. 5% компаний, 15% сотрудников. С 2027 — Стандарт ОКБ</div>
+        </div>
+        <div class="methodology-section">
+          <div class="sec-div">Сводный индекс ДНЖ</div>
+          <div class="formula-box">СИ = П1×0.25 + П2×0.15 + П3×0.10 + П4×0.15 + П5×0.10 + П6×0.15 + П7×0.10</div>
+          <div class="ch ch-200"><canvas id="cMethodWeights"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="sec-div">Ключевые рекомендации по улучшению методики</div>
+    <div class="grid g2">
+      <div>
+        <div class="signal"><div class="signal-icon warn">⚡</div><div><div class="signal-title">Single Source of Failure (П1, П2)</div><div class="signal-body">Полная зависимость от ЕИС Добро.рф. Рекомендация: добавить социологический компонент ВЦИОМ как страховку (вес 20%).</div></div></div>
+        <div class="signal"><div class="signal-icon warn">⚡</div><div><div class="signal-title">«Мёртвые» НКО в П3</div><div class="signal-body">Знаменатель — весь реестр МЭР, включая фактически неактивные НКО. Рекомендация: фильтровать по ИНН ФНС — только ЮЛ с активным статусом.</div></div></div>
+        <div class="signal"><div class="signal-icon warn">⚡</div><div><div class="signal-title">Нет retention в П1</div><div class="signal-body">Методика фиксирует новых участников, но не удержание. Рекомендация: поднять Т-3.11 (retention 12 мес.) как обязательный компонент П1.</div></div></div>
+      </div>
+      <div>
+        <div class="signal"><div class="signal-icon warn">⚡</div><div><div class="signal-title">П6 не измеряет загрузку ДЦ</div><div class="signal-body">Фиксируется наличие, но не востребованность. Рекомендация: добавить индикатор «обращений на 1000 жителей».</div></div></div>
+        <div class="signal"><div class="signal-icon warn">⚡</div><div><div class="signal-title">Нет дифференциации целей по типу регионов</div><div class="signal-body">14% охват для Москвы и Чукотки — некорректно. Рекомендация: кластеризация регионов (мегаполисы / средние / малые / северные).</div></div></div>
+        <div class="signal"><div class="signal-icon warn">⚡</div><div><div class="signal-title">Веса сводного индекса</div><div class="signal-body">Веса установлены только экспертно. Рекомендация: провести факторный анализ на исторических данных 2022–2025 для валидации весов.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+        <div class="signal"><div class="signal-icon warn">⚡</div><div><div class="signal-title">Нет отдельного блока ресурсной устойчивости</div><div class="signal-body">Рекомендуется добавить новый аналитический контур: внебюджет, leverage, диверсификация и концентрация источников доходов СО НКО.</div></div></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: ALERTS ===== -->
+  <div class="page" id="page-alerts">
+    <div class="page-header">
+      <div><div class="page-title">🔔 Алерты и пороги</div><div class="page-subtitle">Автоматические сигналы при отклонении индикаторов от целей</div></div>
+      <div class="header-actions"><span class="badge badge-err">3 критических</span><span class="badge badge-warn">5 предупреждений</span><span class="badge badge-ok">4 позитивных</span></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:16px">
+      <div>
+        <div class="sec-div">🔴 Критические (3)</div>
+        <div class="signal"><div class="signal-icon err">⚠️</div><div><div class="signal-title">П3 ниже 15 — 18 регионов</div><div class="signal-body">СКФО (6), ЮФО (4), ДФО (4), ПФО (4). Активность СО НКО упала в 3 ФО подряд. Рекомендовано: целевая поддержка НКО через Добро.Навигатор.</div></div></div>
+        <div class="signal"><div class="signal-icon err">📉</div><div><div class="signal-title">Retention &lt;55% — 12 регионов</div><div class="signal-body">Ингушетия (41%), Дагестан (43%), Тыва (48%). Отток добровольцев за последние 2 квартала критический. Срочные меры удержания.</div></div></div>
+        <div class="signal"><div class="signal-icon err">🏗</div><div><div class="signal-title">Охват ДЦ &lt;50% — 7 регионов</div><div class="signal-body">Преимущественно сельские МО в СКФО и ДФО. Господдержка &lt;80₽/чел. Требуется внеплановое финансирование строительства ДЦ.</div></div></div>
+      </div>
+      <div>
+        <div class="sec-div">🟡 Предупреждения (5)</div>
+        <div class="signal"><div class="signal-icon warn">⚡</div><div><div class="signal-title">П7 &lt;20 в 43 регионах</div><div class="signal-body">КВ остаётся ниже 20 баллов в большинстве регионов. Нужна регуляторная поддержка, стимулирование через ЭКГ-рейтинг.</div></div></div>
+        <div class="signal"><div class="signal-icon warn">📊</div><div><div class="signal-title">П1 стагнирует 3 квартала</div><div class="signal-body">Прирост замедлился до 0.8%/кв. против плановых 1.5%/кв. Прогноз 2025: 6.1% (план 6.8%). Пересмотр воронки вовлечения.</div></div></div>
+        <div class="signal"><div class="signal-icon warn">💰</div><div><div class="signal-title">Господдержка &lt;100₽/чел. — 29 регионов</div><div class="signal-body">Норматив 200₽/чел. Медианный регион: 112₽. Требуется выравнивание межбюджетных трансфертов.</div></div></div>
+        <div class="signal"><div class="signal-icon warn">📱</div><div><div class="signal-title">Конверсия → первое ПД снижается</div><div class="signal-body">С 38% до 34% за год. Причина: снижение качества онбординга. Рекомендован UX-аудит мобильного приложения.</div></div></div>
+        <div class="signal"><div class="signal-icon warn">🎓</div><div><div class="signal-title">Обучение сотрудников РЦ/ДЦ &lt;60% — 18 регионов</div><div class="signal-body">Квалификация кадров инфраструктуры критически важна для П6. Требуется ускорение обучения через «Добрино».</div></div></div>
+      </div>
+    </div>
+    <div class="sec-div">🟢 Позитивные сигналы (4)</div>
+    <div class="grid g2">
+      <div>
+        <div class="signal"><div class="signal-icon ok">✅</div><div><div class="signal-title">П6 опережает план во всех ФО</div><div class="signal-body">Инфраструктура развивается быстрее целевого графика. Прогноз 2030: достижение 82 баллов (цель 80).</div></div></div>
+        <div class="signal"><div class="signal-icon ok">✅</div><div><div class="signal-title">«Обучение служением» +18% за год</div><div class="signal-body">24 000 участников. Динамика превышает план. Рекомендуется масштабирование опыта лидеров.</div></div></div>
+      </div>
+      <div>
+        <div class="signal"><div class="signal-icon ok">✅</div><div><div class="signal-title">Добро.Центры: +340 за год</div><div class="signal-body">3200 ДЦ по стране. Охват населения достиг 89%. Все 85 регионов заключили соглашения ДНЖ.</div></div></div>
+        <div class="signal"><div class="signal-icon ok">✅</div><div><div class="signal-title">NPS платформы Добро.рф вырос до +42</div><div class="signal-body">Удовлетворённость пользователей растёт третий квартал подряд. CSI сотрудников РЦ/ДЦ: 4.1/5.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT OVERLAY -->
+  <div class="overlay" id="exportOverlay" onclick="if(event.target===this)hideExport()">
+    <div class="modal">
+      <button class="modal-close" onclick="hideExport()">✕</button>
+      <div class="modal-title">Экспорт данных</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-primary" onclick="print();hideExport()">🖨 Распечатать страницу (PDF)</button>
+        <button class="btn" onclick="hideExport()">📊 Выгрузить в Excel (.xlsx)</button>
+        <button class="btn" onclick="hideExport()">📋 Скопировать данные в буфер</button>
+        <button class="btn" onclick="hideExport()">📧 Отправить отчёт по email</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+<script>
+// ============================
+// DATA
+// ============================
+const REGIONS = [
+  {name:'Москва',fo:'ЦФО',score:68,p1:62,p3:28,p6:88,delta:+2.1,pop:'12.4 млн'},
+  {name:'Татарстан',fo:'ПФО',score:66,p1:60,p3:30,p6:84,delta:+1.8,pop:'3.9 млн'},
+  {name:'Санкт-Петербург',fo:'СЗФО',score:64,p1:58,p3:26,p6:86,delta:+2.4,pop:'5.4 млн'},
+  {name:'Новосибирская обл.',fo:'СФО',score:63,p1:56,p3:24,p6:80,delta:+1.9,pop:'2.8 млн'},
+  {name:'Краснодарский кр.',fo:'ЮФО',score:62,p1:55,p3:22,p6:78,delta:+1.6,pop:'5.9 млн'},
+  {name:'Свердловская обл.',fo:'УФО',score:61,p1:54,p3:22,p6:80,delta:+2.0,pop:'4.3 млн'},
+  {name:'Нижегородская обл.',fo:'ПФО',score:60,p1:52,p3:21,p6:78,delta:+1.4,pop:'3.1 млн'},
+  {name:'Московская обл.',fo:'ЦФО',score:58,p1:50,p3:20,p6:76,delta:+2.1,pop:'8.2 млн'},
+  {name:'Самарская обл.',fo:'ПФО',score:57,p1:50,p3:19,p6:74,delta:+1.2,pop:'3.2 млн'},
+  {name:'Пермский кр.',fo:'ПФО',score:56,p1:48,p3:18,p6:72,delta:+0.9,pop:'2.6 млн'},
+  {name:'Ростовская обл.',fo:'ЮФО',score:54,p1:46,p3:18,p6:70,delta:+0.8,pop:'4.2 млн'},
+  {name:'Красноярский кр.',fo:'СФО',score:53,p1:44,p3:16,p6:68,delta:+0.7,pop:'2.9 млн'},
+  {name:'Воронежская обл.',fo:'ЦФО',score:51,p1:42,p3:15,p6:66,delta:+0.5,pop:'2.3 млн'},
+  {name:'Башкортостан',fo:'ПФО',score:50,p1:42,p3:14,p6:64,delta:+0.4,pop:'4.1 млн'},
+  {name:'Хабаровский кр.',fo:'ДФО',score:48,p1:40,p3:12,p6:62,delta:-0.2,pop:'1.3 млн'},
+  {name:'Иркутская обл.',fo:'СФО',score:47,p1:38,p3:12,p6:60,delta:-0.3,pop:'2.4 млн'},
+  {name:'Ставропольский кр.',fo:'СКФО',score:44,p1:36,p3:10,p6:58,delta:-0.5,pop:'2.8 млн'},
+  {name:'Бурятия',fo:'ДФО',score:40,p1:32,p3:8,p6:50,delta:-0.8,pop:'0.97 млн'},
+  {name:'Дагестан',fo:'СКФО',score:34,p1:26,p3:6,p6:42,delta:-1.4,pop:'3.2 млн'},
+  {name:'Тыва',fo:'СФО',score:28,p1:20,p3:5,p6:34,delta:-1.8,pop:'0.34 млн'},
+];
+
+const FO_DATA = {
+  'ЦФО':{score:58,p1:52,p6:76},'СЗФО':{score:56,p1:50,p6:78},'ЮФО':{score:52,p1:46,p6:70},
+  'СКФО':{score:38,p1:30,p6:48},'ПФО':{score:54,p1:48,p6:72},'УФО':{score:55,p1:49,p6:74},
+  'СФО':{score:48,p1:42,p6:62},'ДФО':{score:44,p1:38,p6:56}
+};
+
+const YEARS = ['2022','2023','2024','Q1 2025','Q2 2025'];
+const FO_NAMES = Object.keys(FO_DATA);
+
+function scoreColor(s){
+  if(s>=75) return getComputedStyle(document.documentElement).getPropertyValue('--ok').trim();
+  if(s>=50) return getComputedStyle(document.documentElement).getPropertyValue('--wn').trim();
+  return getComputedStyle(document.documentElement).getPropertyValue('--er').trim();
+}
+function statusBadge(s){
+  if(s>=75) return '<span class="badge badge-ok">Лидер</span>';
+  if(s>=50) return '<span class="badge badge-warn">В работе</span>';
+  return '<span class="badge badge-err">Критично</span>';
+}
+function sparkSvg(vals,col){
+  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
+  const w=40,h=16,pts=vals.map((v,i)=>[(i/(vals.length-1))*w,h-(((v-min)/range)*(h-2)+1)]);
+  return `<svg width="${w}" height="${h}" class="sparkline"><polyline fill="none" stroke="${col}" stroke-width="1.5" points="${pts.map(p=>p.join(',')).join(' ')}"/></svg>`;
+}
+
+// ============================
+// UI
+// ============================
+let chartsInited = {};
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('page-'+id);
+  if(pg) pg.classList.add('active');
+  document.querySelectorAll(`[data-page="${id}"]`).forEach(n=>n.classList.add('active'));
+  if(!chartsInited[id]){chartsInited[id]=true; setTimeout(()=>initPageCharts(id),50);}
+  closeSidebar();
+  window.scrollTo(0,0);
+}
+function toggleSidebar(){
+  const s=document.getElementById('sidebar');
+  const o=document.getElementById('mobileOverlay');
+  s.classList.toggle('open');
+  o.style.display=s.classList.contains('open')?'block':'none';
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mobileOverlay').style.display='none';
+}
+function toggleTheme(){
+  const h=document.documentElement;
+  const isDark=h.getAttribute('data-theme')==='dark';
+  h.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('themeLabel').textContent=isDark?'Тёмная тема':'Светлая тема';
+  document.getElementById('themeIcon').innerHTML=isDark
+    ?'<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'
+    :'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  // Reset charts on theme change
+  chartsInited={};
+  const activePage=document.querySelector('.page.active');
+  if(activePage) setTimeout(()=>initPageCharts(activePage.id.replace('page-','')),80);
+}
+function setPeriod(p,btn){
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function showExport(){document.getElementById('exportOverlay').classList.add('open');}
+function hideExport(){document.getElementById('exportOverlay').classList.remove('open');}
+function switchRegTab(name){
+  document.querySelectorAll('#page-region .tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#page-region .tab').forEach(t=>t.classList.remove('active'));
+  const panel=document.getElementById('regTab-'+name);
+  if(panel) panel.classList.add('active');
+  const tabs=document.querySelectorAll('#page-region .tab');
+  const map={people:0,orgs:1,infra:2,dynamics:3};
+  if(map[name]!==undefined && tabs[map[name]]) tabs[map[name]].classList.add('active');
+  if(!chartsInited['regTab_'+name]){chartsInited['regTab_'+name]=true; setTimeout(()=>initRegTabCharts(name),50);}
+}
+
+const REG_DATA = {
+  msk_obl:{name:'Московская область',fo:'ЦФО',score:58,rank:8,pop:'8.2 млн',delta:'+2.1',forecast:'≥62'},
+  spb:{name:'Санкт-Петербург',fo:'СЗФО',score:64,rank:3,pop:'5.4 млн',delta:'+2.4',forecast:'≥67'},
+  tat:{name:'Республика Татарстан',fo:'ПФО',score:66,rank:2,pop:'3.9 млн',delta:'+1.8',forecast:'≥70'},
+  krd:{name:'Краснодарский край',fo:'ЮФО',score:62,rank:5,pop:'5.9 млн',delta:'+1.6',forecast:'≥65'},
+  svr:{name:'Свердловская область',fo:'УФО',score:61,rank:6,pop:'4.3 млн',delta:'+2.0',forecast:'≥64'},
+  nov:{name:'Новосибирская область',fo:'СФО',score:63,rank:4,pop:'2.8 млн',delta:'+1.9',forecast:'≥66'},
+  dag:{name:'Республика Дагестан',fo:'СКФО',score:34,rank:82,pop:'3.2 млн',delta:'−1.4',forecast:'≈36'},
+  tva:{name:'Республика Тыва',fo:'СФО',score:28,rank:85,pop:'0.34 млн',delta:'−1.8',forecast:'≈30'},
+};
+function changeRegion(key){
+  const r=REG_DATA[key]||REG_DATA.msk_obl;
+  document.getElementById('regTitle').textContent=r.name;
+  document.getElementById('regFO').textContent=r.fo;
+  document.getElementById('regSubtitle').textContent=`Рейтинг: #${r.rank} из 85 · Обновлено: май 2025`;
+  document.getElementById('regScore').textContent=r.score;
+  document.getElementById('regPop').textContent=r.pop;
+  document.getElementById('regRank').textContent='#'+r.rank;
+  document.getElementById('regDelta').textContent=(r.delta.startsWith('+')? '▲ ':'▼ ')+r.delta;
+  document.getElementById('regForecast').textContent=r.forecast;
+  const prog=document.getElementById('regProg');
+  prog.style.width=r.score+'%';
+  prog.style.background=scoreColor(r.score);
+  const badge=document.getElementById('regBadge');
+  badge.className='badge '+(r.score>=75?'badge-ok':r.score>=50?'badge-warn':'badge-err');
+  badge.textContent=r.score>=75?'Лидер':r.score>=50?'В работе':'Критично';
+}
+
+// ============================
+// INIT TABLES
+// ============================
+function initStaticTables(){
+  // FO Table
+  const fo=document.getElementById('foTable');
+  if(fo){
+    const sorted=Object.entries(FO_DATA).sort((a,b)=>b[1].score-a[1].score);
+    fo.innerHTML=sorted.map(([name,d],i)=>`
+      <div class="fo-row">
+        <span style="font-size:11px;color:var(--mu);font-variant-numeric:tabular-nums">${i+1}</span>
+        <div><div class="fo-name">${name}</div><div class="fo-bar-wrap"><div class="fo-bar" style="width:${d.score}%;background:${scoreColor(d.score)}"></div></div></div>
+        <span class="fo-val" style="color:${scoreColor(d.score)}">${d.score}</span>
+        <span style="font-size:11px;color:var(--mu);text-align:right">${d.p1}</span>
+        <span style="font-size:11px;color:var(--mu);text-align:right">${d.p6}</span>
+      </div>`).join('');
+  }
+
+  // Top regions
+  const top=document.getElementById('topRegs');
+  if(top){
+    const sorted=[...REGIONS].sort((a,b)=>b.score-a.score).slice(0,10);
+    top.innerHTML=sorted.map((r,i)=>`
+      <tr><td>${i+1}</td><td><b>${r.name}</b></td><td style="text-align:right;font-weight:800;color:${scoreColor(r.score)}">${r.score}</td>
+      <td><span class="delta ${r.delta>0?'up':'dn'}">${r.delta>0?'▲ +':'▼ '}${Math.abs(r.delta)}</span></td>
+      <td style="font-size:11px;color:var(--ok)">≥${r.score+3}</td></tr>`).join('');
+  }
+
+  // Bottom regions
+  const bot=document.getElementById('botRegs');
+  if(bot){
+    const sorted=[...REGIONS].sort((a,b)=>a.score-b.score).slice(0,10);
+    bot.innerHTML=sorted.map((r,i)=>`
+      <tr><td>${i+1}</td><td><b>${r.name}</b></td><td style="text-align:right;font-weight:800;color:${scoreColor(r.score)}">${r.score}</td>
+      <td><span class="delta ${r.delta>0?'up':'dn'}">${r.delta>0?'▲ +':'▼ '}${Math.abs(r.delta)}</span></td>
+      <td>${statusBadge(r.score)}</td></tr>`).join('');
+  }
+
+  // Heatmap
+  const hm=document.getElementById('heatmapWrap');
+  if(hm){
+    const cols=['Регион','П1','П2','П3','П4','П5','П6','П7','Итог'];
+    const p2=[48,46,52,44,50,60,50,62,40,46,42,40,36,40,34,32,28,24,20,16];
+    const p4=[52,55,50,48,50,62,54,64,44,48,44,42,38,42,36,34,30,26,22,18];
+    const p5=[60,62,58,56,60,66,58,68,50,52,48,46,42,46,40,38,34,30,24,20];
+    function hmClass(v){
+      if(v>=65) return 'hm-c4';
+      if(v>=50) return 'hm-c3';
+      if(v>=35) return 'hm-c2';
+      if(v>=20) return 'hm-c1';
+      return 'hm-c0';
+    }
+    let html=`<table class="heatmap"><thead><tr><th style="text-align:left">Регион</th><th>П1</th><th>П2</th><th>П3</th><th>П4</th><th>П5</th><th>П6</th><th>П7</th><th>Итог</th></tr></thead><tbody>`;
+    REGIONS.slice(0,12).forEach((r,i)=>{
+      const p7=Math.round(r.p1*0.35);
+      html+=`<tr>
+        <td style="text-align:left;font-weight:600;font-size:11px;cursor:pointer" onclick="showPage('region')">${r.name}</td>
+        <td class="${hmClass(r.p1)}" title="${r.p1}">${r.p1}</td>
+        <td class="${hmClass(p2[i])}" title="${p2[i]}">${p2[i]}</td>
+        <td class="${hmClass(r.p3)}" title="${r.p3}">${r.p3}</td>
+        <td class="${hmClass(p4[i])}" title="${p4[i]}">${p4[i]}</td>
+        <td class="${hmClass(p5[i])}" title="${p5[i]}">${p5[i]}</td>
+        <td class="${hmClass(r.p6)}" title="${r.p6}">${r.p6}</td>
+        <td class="${hmClass(p7)}" title="${p7}">${p7}</td>
+        <td class="${hmClass(r.score)}" style="font-weight:800">${r.score}</td>
+      </tr>`;
+    });
+    html+='</tbody></table>';
+    hm.innerHTML=html;
+  }
+}
+
+function renderRating(){
+  const sort=document.getElementById('ratingSort')?.value||'score';
+  const foFilter=document.getElementById('ratingFO')?.value||'all';
+  let data=foFilter==='all'?[...REGIONS]:REGIONS.filter(r=>r.fo===foFilter);
+  data.sort((a,b)=>{
+    if(sort==='p1') return b.p1-a.p1;
+    if(sort==='p3') return b.p3-a.p3;
+    if(sort==='p6') return b.p6-a.p6;
+    if(sort==='delta') return b.delta-a.delta;
+    return b.score-a.score;
+  });
+  const tbody=document.getElementById('ratingBody');
+  if(!tbody) return;
+  tbody.innerHTML=data.map((r,i)=>`
+    <tr style="cursor:pointer" onclick="showPage('region')">
+      <td>${i+1}</td><td><b>${r.name}</b></td><td style="font-size:11px;color:var(--mu)">${r.fo}</td>
+      <td style="text-align:right;font-weight:800;font-size:13px;color:${scoreColor(r.score)}">${r.score}</td>
+      <td style="text-align:right">${r.p1}</td><td style="text-align:right;color:${scoreColor(r.p3)}">${r.p3}</td>
+      <td style="text-align:right">${r.p6}</td>
+      <td><span class="delta ${r.delta>0?'up':'dn'}">${r.delta>0?'▲ +':'▼ '}${Math.abs(r.delta)}</span></td>
+      <td>${statusBadge(r.score)}</td>
+    </tr>`).join('');
+}
+
+function renderCompare(){
+  const rows=[
+    ['Охват добровольцами',['6.8%','5.4%','7.2%','5.6%']],
+    ['Активных СО НКО',['22%','25%','30%','18%']],
+    ['Retention 12 мес.',['58%','63%','65%','61%']],
+    ['Добро.Центров',['142','238','94','3200']],
+    ['Компании с КВ',['3.2%','2.8%','4.1%','2.1%']],
+    ['П1 (итог)',['50','58','60','47']],
+    ['П3 (итог)',['20','26','30','18']],
+    ['П6 (итог)',['76','86','84','72']],
+    ['Сводный индекс',['58','64','66','52']],
+  ];
+  const tbody=document.getElementById('cmpTable');
+  if(!tbody) return;
+  tbody.innerHTML=rows.map(([name,vals])=>`
+    <tr><td><b>${name}</b></td>${vals.map(v=>`<td style="text-align:right;font-variant-numeric:tabular-nums">${v}</td>`).join('')}</tr>
+  `).join('');
+}
+
+function initResourcesTables(){
+  const el=document.getElementById('resTop');
+  if(!el) return;
+  const rows=[
+    ['Москва','2 480 ₽',3.2,'Лидер'],['Татарстан','1 740 ₽',2.9,'Лидер'],['Санкт-Петербург','1 680 ₽',2.8,'Лидер'],
+    ['Моск. обл.','1 240 ₽',2.1,'В работе'],['Краснодарский кр.','1 110 ₽',1.9,'В работе'],['Дагестан','280 ₽',0.7,'Критично']
+  ];
+  el.innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r[0]}</td><td style="text-align:right;font-weight:700">${r[1]}</td><td style="text-align:right">${r[2]}x</td><td>${r[3]==='Лидер'?'<span class="badge badge-ok">Лидер</span>':r[3]==='В работе'?'<span class="badge badge-warn">В работе</span>':'<span class="badge badge-err">Критично</span>'}</td></tr>`).join('');
+}
+
+function initMunicipalTables(){
+  const rows=[['Красногорск',72,'66%','94%','Лидер'],['Балашиха',64,'61%','88%','В работе'],['Подольск',60,'59%','82%','В работе'],['Одинцово',58,'57%','86%','В работе'],['Серпухов',52,'51%','64%','В работе'],['Коломна',49,'48%','60%','Критично'],['Егорьевск',44,'42%','51%','Критично'],['Луховицы',41,'39%','44%','Критично']];
+  const tbody=document.getElementById('munBody'); if(tbody) tbody.innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r[0]}</td><td style="text-align:right;font-weight:700;color:${r[1]>=60?'var(--ok)':r[1]>=50?'var(--wn)':'var(--er)'}">${r[1]}</td><td style="text-align:right">${r[2]}</td><td style="text-align:right">${r[3]}</td><td>${r[4]==='Лидер'?'<span class="badge badge-ok">Лидер</span>':r[4]==='В работе'?'<span class="badge badge-warn">В работе</span>':'<span class="badge badge-err">Критично</span>'}</td></tr>`).join('');
+  const wrap=document.getElementById('munTableWrap');
+  if(wrap){
+    const data=[['Красногорск',72],['Балашиха',64],['Подольск',60],['Одинцово',58],['Химки',56],['Мытищи',55],['Коломна',49],['Егорьевск',44],['Луховицы',41],['Шатура',38],['Кашира',37],['Зарайск',34]];
+    const cls=v=>v>=65?'hm-c4':v>=50?'hm-c3':v>=40?'hm-c2':v>=30?'hm-c1':'hm-c0';
+    wrap.innerHTML='<table class="heatmap"><thead><tr><th style="text-align:left">МО</th><th>Индекс</th></tr></thead><tbody>'+data.map(r=>`<tr><td style="text-align:left;font-weight:600">${r[0]}</td><td class="${cls(r[1])}">${r[1]}</td></tr>`).join('')+'</tbody></table>';
+  }
+}
+
+function initForecastTables(){
+  const rows=[['Базовый',63,54,24,79,'64%'],['Целевой',69,61,30,84,'81%'],['Стресс',57,47,17,74,'47%']];
+  const tbody=document.getElementById('frcBody'); if(tbody) tbody.innerHTML=rows.map(r=>`<tr><td><b>${r[0]}</b></td><td style="text-align:right;font-weight:800">${r[1]}</td><td style="text-align:right">${r[2]}</td><td style="text-align:right">${r[3]}</td><td style="text-align:right">${r[4]}</td><td style="text-align:right">${r[5]}</td></tr>`).join('');
+}
+
+function initP1Ranking(){
+  const el=document.getElementById('p1Ranking');
+  if(!el) return;
+  const sorted=[...REGIONS].sort((a,b)=>b.p1-a.p1).slice(0,10);
+  el.innerHTML=sorted.map((r,i)=>{
+    const spark=sparkSvg([r.p1-4,r.p1-2,r.p1-1,r.p1],r.delta>0?'var(--ok)':'var(--er)');
+    return `<tr><td>${i+1}</td><td>${r.name}</td><td style="text-align:right;font-weight:700;color:${scoreColor(r.p1)}">${r.p1}</td><td style="text-align:right">${(r.p1/88*14).toFixed(1)}%</td><td>${spark}</td></tr>`;
+  }).join('');
+}
+function initP3Ranking(){
+  const el=document.getElementById('p3Ranking');
+  if(!el) return;
+  const sorted=[...REGIONS].sort((a,b)=>b.p3-a.p3).slice(0,10);
+  el.innerHTML=sorted.map((r,i)=>{
+    const spark=sparkSvg([r.p3-3,r.p3-1,r.p3,r.p3],r.delta>0?'var(--ok)':'var(--er)');
+    return `<tr><td>${i+1}</td><td>${r.name}</td><td style="text-align:right;font-weight:700;color:${scoreColor(r.p3)}">${r.p3}</td><td style="text-align:right">${(r.p3/100*30).toFixed(0)}%</td><td>${spark}</td></tr>`;
+  }).join('');
+}
+function initP6Ranking(){
+  const el=document.getElementById('p6Ranking');
+  if(!el) return;
+  const sorted=[...REGIONS].sort((a,b)=>b.p6-a.p6).slice(0,10);
+  el.innerHTML=sorted.map((r,i)=>{
+    const spark=sparkSvg([r.p6-5,r.p6-2,r.p6-1,r.p6],r.delta>0?'var(--ok)':'var(--er)');
+    return `<tr><td>${i+1}</td><td>${r.name}</td><td style="text-align:right;font-weight:700;color:${scoreColor(r.p6)}">${r.p6}</td><td style="text-align:right">${Math.round(r.p6*0.9)}%</td><td>${spark}</td></tr>`;
+  }).join('');
+}
+
+// ============================
+// GAUGE ANIMATION
+// ============================
+function animateGauge(id,valId,target,color){
+  const el=document.getElementById(id);
+  const valEl=document.getElementById(valId);
+  if(!el||!valEl) return;
+  const totalLen=251.2;
+  const finalOffset=totalLen-(totalLen*target/100);
+  el.style.stroke=color;
+  el.style.strokeDashoffset=totalLen;
+  let cur=0;
+  const step=()=>{
+    cur+=1.5;
+    if(cur>target) cur=target;
+    const off=totalLen-(totalLen*cur/100);
+    el.style.strokeDashoffset=off;
+    valEl.textContent=Math.round(cur);
+    if(cur<target) requestAnimationFrame(step);
+  };
+  setTimeout(step,300);
+}
+
+// ============================
+// CHART FACTORY
+// ============================
+const CV={};
+function mkChart(id,config){
+  if(CV[id]){try{CV[id].destroy()}catch(e){}}
+  const canvas=document.getElementById(id);
+  if(!canvas) return null;
+  CV[id]=new Chart(canvas,config);
+  return CV[id];
+}
+function getStyle(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function g(){
+  return {
+    ok:getStyle('--ok'),wn:getStyle('--wn'),er:getStyle('--er'),
+    pr:getStyle('--pr'),te:getStyle('--te'),go:getStyle('--go'),pu:getStyle('--pu'),
+    mu:getStyle('--mu'),tx:getStyle('--tx'),dv:getStyle('--dv'),sf:getStyle('--sf')
+  };
+}
+const CHART_DEFAULTS={
+  plugins:{legend:{labels:{color:()=>g().tx,font:{family:"Inter,sans-serif",size:11}}},tooltip:{backgroundColor:()=>g().sf,titleColor:()=>g().tx,bodyColor:()=>g().mu,borderColor:()=>g().dv,borderWidth:1}},
+  scales:{x:{ticks:{color:()=>g().mu,font:{size:10}},grid:{color:()=>g().dv+'44'}},y:{ticks:{color:()=>g().mu,font:{size:10}},grid:{color:()=>g().dv+'44'}}}
+};
+function mergeDefaults(cfg){
+  if(!cfg.options) cfg.options={};
+  cfg.options.responsive=true;cfg.options.maintainAspectRatio=false;
+  cfg.options.plugins={...CHART_DEFAULTS.plugins,...(cfg.options.plugins||{})};
+  if(cfg.type!=='pie'&&cfg.type!=='doughnut'&&cfg.type!=='radar'&&cfg.type!=='polarArea'){
+    cfg.options.scales={...CHART_DEFAULTS.scales,...(cfg.options.scales||{})};
+  }
+  return cfg;
+}
+
+// ============================
+// PAGE CHARTS
+// ============================
+function initPageCharts(id){
+  const C=g();
+  if(id==='russia') initRussiaCharts(C);
+  else if(id==='region') {initRegionCharts(C); switchRegTab('people');}
+  else if(id==='compare') {renderCompare(); initCompareCharts(C);}
+  else if(id==='rating') {renderRating(); initRatingCharts(C);}
+  else if(id==='people') {initP1Ranking(); initPeopleCharts(C);}
+  else if(id==='orgs') {initP3Ranking(); initOrgsCharts(C);}
+  else if(id==='infra') {initP6Ranking(); initInfraCharts(C);}
+  else if(id==='resources') {initResourcesTables(); initResourcesCharts(C);}
+  else if(id==='impact') initImpactCharts(C);
+  else if(id==='municipal') {initMunicipalTables(); initMunicipalCharts(C);}
+  else if(id==='forecast') {initForecastTables(); initForecastCharts(C);}
+  else if(id==='indexes') initIndexesCharts(C);
+  else if(id==='methodology') initMethodologyCharts(C);
+}
+
+function initRussiaCharts(C){
+  animateGauge('gaugeRu','gaugeValRu',52,C.wn);
+
+  // FO Dynamics
+  mkChart('cFoDyn',mergeDefaults({type:'line',data:{labels:YEARS,datasets:[
+    {label:'ЦФО',data:[45,49,54,57,58],borderColor:C.pr,borderWidth:2,tension:.4,pointRadius:3,fill:false},
+    {label:'ПФО',data:[42,46,50,53,54],borderColor:C.te,borderWidth:2,tension:.4,pointRadius:3,fill:false},
+    {label:'СКФО',data:[28,30,33,35,38],borderColor:C.er,borderWidth:2,tension:.4,pointRadius:3,fill:false,borderDash:[4,3]},
+    {label:'СФО',data:[38,41,44,46,48],borderColor:C.go,borderWidth:2,tension:.4,pointRadius:3,fill:false},
+  ]},options:{plugins:{legend:{position:'bottom'}}}}));
+
+  // RU Blocks dynamics
+  mkChart('cRuBlocks',mergeDefaults({type:'line',data:{labels:YEARS,datasets:[
+    {label:'👥 Люди',data:[32,36,40,43,45],borderColor:C.pr,backgroundColor:C.pr+'22',borderWidth:2,tension:.4,fill:true},
+    {label:'🏢 Орг.',data:[24,26,28,29,30],borderColor:C.te,backgroundColor:C.te+'22',borderWidth:2,tension:.4,fill:true},
+    {label:'🏗 Инфра',data:[48,54,60,63,66],borderColor:C.go,backgroundColor:C.go+'22',borderWidth:2,tension:.4,fill:true},
+  ]},options:{plugins:{legend:{position:'bottom'}}}}));
+}
+
+function initRegionCharts(C){
+  // Radar П1–П7
+  mkChart('cRegRadar',mergeDefaults({type:'radar',data:{labels:['П1','П2','П3','П4','П5','П6','П7'],datasets:[
+    {label:'Моск.обл.',data:[50,48,20,52,60,76,22],borderColor:C.pr,backgroundColor:C.pr+'33',borderWidth:2,pointRadius:4},
+    {label:'Медиана РФ',data:[44,40,14,42,52,66,18],borderColor:C.mu,backgroundColor:C.mu+'1a',borderWidth:1.5,borderDash:[4,3],pointRadius:3},
+  ]},options:{scales:{r:{suggestedMin:0,suggestedMax:100,ticks:{stepSize:20,color:C.mu,font:{size:9},backdropColor:'transparent'},grid:{color:C.dv+'66'},angleLines:{color:C.dv+'66'},pointLabels:{color:C.tx,font:{size:11}}}},plugins:{legend:{position:'bottom'}}}}));
+}
+
+function initRegTabCharts(name){
+  const C=g();
+  if(name==='people'){
+    mkChart('cRegCohort',mergeDefaults({type:'bar',data:{labels:['14–17','18–24','25–34','35–44','45–54','55+'],datasets:[
+      {label:'% доля в волонтёрстве',data:[12,28,24,18,10,8],backgroundColor:[C.te,C.pr,C.pr,C.wn,C.go,C.mu+'aa'],borderRadius:4},
+    ]},options:{plugins:{legend:{display:false}}}}));
+  } else if(name==='orgs'){
+    mkChart('cRegOrgs',mergeDefaults({type:'doughnut',data:{labels:['Социальные','Образование','Культура','Экология','Спорт','Прочие'],datasets:[
+      {data:[35,25,15,12,8,5],backgroundColor:[C.pr,C.te,C.go,C.ok,C.wn,C.mu+'99'],borderWidth:1,borderColor:C.sf}
+    ]},options:{plugins:{legend:{position:'right',labels:{font:{size:10}}}}}}));
+  } else if(name==='infra'){
+    mkChart('cRegInfra',mergeDefaults({type:'bar',data:{labels:YEARS,datasets:[
+      {label:'П5',data:[42,48,54,58,60],backgroundColor:C.wn+'bb',borderRadius:4},
+      {label:'П6',data:[60,66,70,74,76],backgroundColor:C.pr+'bb',borderRadius:4},
+    ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{suggestedMax:100}}}}));
+  } else if(name==='dynamics'){
+    mkChart('cRegDyn',mergeDefaults({type:'line',data:{labels:[...YEARS,'2026(пр)','2027(пр)','2028(пр)','2029(пр)','2030(пр)'],datasets:[
+      {label:'Факт',data:[40,44,52,55,58,null,null,null,null,null],borderColor:C.pr,borderWidth:2.5,tension:.4,pointRadius:4,fill:false},
+      {label:'Прогноз',data:[null,null,null,null,58,60,62,64,66,68],borderColor:C.pr,borderWidth:2,tension:.4,pointRadius:3,borderDash:[5,4],fill:false},
+      {label:'Цель 2030',data:Array(10).fill(60),borderColor:C.ok+'88',borderWidth:1.5,borderDash:[3,3],pointRadius:0,fill:false},
+    ]},options:{plugins:{legend:{position:'bottom'}}}}));
+  }
+}
+
+function initCompareCharts(C){
+  const labels=['П1','П2','П3','П4','П5','П6','П7'];
+  const datasets=[
+    {label:'Моск.обл.',data:[50,48,20,52,60,76,22],borderColor:C.pr,backgroundColor:C.pr+'33',borderWidth:2,pointRadius:4},
+    {label:'СПб',data:[58,52,26,58,62,86,28],borderColor:C.te,backgroundColor:C.te+'22',borderWidth:2,pointRadius:4},
+    {label:'Татарстан',data:[60,55,30,60,62,84,30],borderColor:C.go,backgroundColor:C.go+'22',borderWidth:2,pointRadius:4},
+    {label:'РФ медиана',data:[44,40,14,42,52,66,18],borderColor:C.mu,backgroundColor:C.mu+'1a',borderWidth:1.5,borderDash:[4,3],pointRadius:3},
+  ];
+  mkChart('cCmpRadar',mergeDefaults({type:'radar',data:{labels,datasets},options:{scales:{r:{suggestedMin:0,suggestedMax:100,ticks:{stepSize:20,color:C.mu,font:{size:9},backdropColor:'transparent'},grid:{color:C.dv+'66'},angleLines:{color:C.dv+'66'},pointLabels:{color:C.tx,font:{size:11}}}},plugins:{legend:{position:'bottom'}}}}));
+  mkChart('cCmpBar',mergeDefaults({type:'bar',data:{labels,datasets:datasets.slice(0,3).map(d=>({...d,backgroundColor:d.borderColor+'bb',borderColor:d.borderColor,borderWidth:1,borderRadius:4}))},options:{plugins:{legend:{position:'bottom'}}}}));
+}
+
+function initRatingCharts(C){
+  const scores=REGIONS.map(r=>r.score);
+  const bins=[0,0,0,0,0]; // <30,30-45,45-55,55-65,65+
+  scores.forEach(s=>{
+    if(s<30) bins[0]++;
+    else if(s<45) bins[1]++;
+    else if(s<55) bins[2]++;
+    else if(s<65) bins[3]++;
+    else bins[4]++;
+  });
+  mkChart('cRatingHist',mergeDefaults({type:'bar',data:{labels:['<30','30–44','45–54','55–64','≥65'],datasets:[
+    {data:bins,backgroundColor:[C.er+'cc',C.wn+'cc',C.wn+'aa',C.ok+'cc',C.ok+'ee'],borderRadius:6,borderSkipped:false}
+  ]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{stepSize:2}}}}}));
+
+  mkChart('cRatingFO',mergeDefaults({type:'bar',data:{
+    labels:FO_NAMES,
+    datasets:[
+      {label:'Факт',data:FO_NAMES.map(fo=>FO_DATA[fo].score),backgroundColor:FO_NAMES.map(fo=>scoreColor(FO_DATA[fo].score)+'bb'),borderRadius:4},
+      {label:'Цель 2030',data:Array(FO_NAMES.length).fill(60),type:'line',borderColor:C.ok+'aa',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false},
+    ]
+  },options:{plugins:{legend:{position:'bottom'}}}}));
+}
+
+function initPeopleCharts(C){
+  initP1Ranking();
+  mkChart('cPeopleDyn',mergeDefaults({type:'line',data:{labels:YEARS,datasets:[
+    {label:'П1 Активность',data:[30,36,41,44,47],borderColor:C.pr,backgroundColor:C.pr+'22',borderWidth:2.5,tension:.4,fill:true,pointRadius:4},
+    {label:'П2 Помогающие',data:[22,28,32,35,38],borderColor:C.te,backgroundColor:C.te+'22',borderWidth:2.5,tension:.4,fill:true,pointRadius:4},
+    {label:'Цель П1',data:Array(5).fill(70),borderColor:C.ok+'66',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,label:'Цель П1 ≥70'},
+  ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{suggestedMax:80,suggestedMin:0}}}}));
+
+  mkChart('cPeopleCohort',mergeDefaults({type:'bar',data:{labels:['14–17','18–24','25–34','35–44','45–54','55+'],datasets:[
+    {label:'2024',data:[10,24,22,17,9,7],backgroundColor:C.mu+'88',borderRadius:3},
+    {label:'2025',data:[12,28,24,18,10,8],backgroundColor:C.pr+'cc',borderRadius:3},
+  ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{title:{display:true,text:'% от возрастной когорты',color:C.mu,font:{size:10}}}}}}));
+
+  mkChart('cPeopleFunnel',mergeDefaults({type:'bar',data:{labels:['Знает о Добро.рф','Зарегистрирован','1-е ПД','Регулярный (3+ ПД)','Лидер/наставник'],datasets:[
+    {data:[100,56,34,18,6],backgroundColor:[C.pr+'ee',C.pr+'cc',C.pr+'aa',C.pr+'88',C.pr+'66'],borderRadius:4},
+  ]},options:{indexAxis:'y',plugins:{legend:{display:false}}}}));
+
+  mkChart('cPeopleRetention',mergeDefaults({type:'line',data:{labels:['Q1 24','Q2 24','Q3 24','Q4 24','Q1 25','Q2 25'],datasets:[
+    {label:'Retention 12 мес.',data:[68,67,66,65,63,61],borderColor:C.er,backgroundColor:C.er+'22',borderWidth:2.5,tension:.4,fill:true,pointRadius:4},
+    {label:'Churn rate',data:[32,33,34,35,37,39],borderColor:C.wn,backgroundColor:C.wn+'22',borderWidth:2,tension:.4,fill:true,pointRadius:3},
+  ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{suggestedMax:100,suggestedMin:0}}}}));
+
+  mkChart('cPeoplePractices',mergeDefaults({type:'doughnut',data:{labels:['Социальная помощь','Экологические акции','Культура и спорт','Образование','Донорство','Иные'],datasets:[
+    {data:[32,22,18,14,8,6],backgroundColor:[C.pr,C.te,C.go,C.ok,C.wn,C.mu+'aa'],borderWidth:1,borderColor:C.sf}
+  ]},options:{plugins:{legend:{position:'right',labels:{font:{size:10}}}}}}));
+}
+
+function initOrgsCharts(C){
+  initP3Ranking();
+  mkChart('cOrgsDyn',mergeDefaults({type:'line',data:{labels:YEARS,datasets:[
+    {label:'П3 НКО',data:[22,22,20,19,18],borderColor:C.er,backgroundColor:C.er+'22',borderWidth:2.5,tension:.4,fill:true,pointRadius:4},
+    {label:'П4 Образование',data:[30,35,38,41,43],borderColor:C.te,backgroundColor:C.te+'22',borderWidth:2.5,tension:.4,fill:true,pointRadius:4},
+    {label:'П7 КВ',data:[14,16,20,23,26],borderColor:C.go,backgroundColor:C.go+'22',borderWidth:2.5,tension:.4,fill:true,pointRadius:4},
+    {label:'Цель П3 ≥30',data:Array(5).fill(30),borderColor:C.ok+'55',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false},
+  ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{suggestedMax:55,suggestedMin:0}}}}));
+
+  mkChart('cOrgsDiv',mergeDefaults({type:'bar',data:{labels:['D₁ (1 тип)','D₂ (2 типа)','D₃ (3 типа)','D₄ (4 типа)'],datasets:[
+    {label:'2023',data:[35,30,22,13],backgroundColor:C.mu+'88',borderRadius:4},
+    {label:'2025',data:[28,32,25,15],backgroundColor:C.te+'cc',borderRadius:4},
+  ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{title:{display:true,text:'% регионов',color:C.mu,font:{size:10}}}}}}));
+
+  mkChart('cOrgsKV',mergeDefaults({type:'bar',data:{labels:FO_NAMES,datasets:[
+    {label:'% компаний с КВ',data:[3.2,2.8,1.8,0.8,2.1,2.6,1.9,1.4],backgroundColor:FO_NAMES.map((_,i)=>i<3?C.go+'cc':C.wn+'cc'),borderRadius:4},
+    {label:'Цель 5%',data:Array(8).fill(5),type:'line',borderColor:C.ok+'88',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false},
+  ]},options:{plugins:{legend:{position:'bottom'}}}}));
+}
+
+function initInfraCharts(C){
+  initP6Ranking();
+  mkChart('cInfraDyn',mergeDefaults({type:'line',data:{labels:YEARS,datasets:[
+    {label:'П5 Господдержка',data:[42,48,54,58,60],borderColor:C.wn,backgroundColor:C.wn+'22',borderWidth:2.5,tension:.4,fill:true,pointRadius:4},
+    {label:'П6 Инфраструктура',data:[54,60,66,70,72],borderColor:C.pr,backgroundColor:C.pr+'22',borderWidth:2.5,tension:.4,fill:true,pointRadius:4},
+    {label:'Прогноз П6',data:[null,null,null,null,72,76,79,81,82,83],borderColor:C.pr,borderWidth:2,borderDash:[5,4],tension:.4,pointRadius:3,fill:false},
+  ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{suggestedMax:100,suggestedMin:0}}}}));
+
+  mkChart('cInfraFO',mergeDefaults({type:'bar',data:{labels:FO_NAMES,datasets:[
+    {label:'Охват ДЦ (%)',data:[94,92,88,62,86,90,78,70],backgroundColor:FO_NAMES.map((_,i)=>{
+      const v=[94,92,88,62,86,90,78,70][i];
+      return v>=80?C.ok+'cc':v>=60?C.wn+'cc':C.er+'cc';
+    }),borderRadius:4},
+    {label:'Цель 100%',data:Array(8).fill(100),type:'line',borderColor:C.ok+'88',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false},
+  ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{suggestedMax:110}}}}));
+
+  mkChart('cInfraComp',mergeDefaults({type:'bar',data:{labels:FO_NAMES,datasets:[
+    {label:'Структура (П6-С)',data:[52,50,46,36,48,52,44,40],backgroundColor:C.pr+'99',borderRadius:4},
+    {label:'Квалификация (П6-К)',data:[36,34,32,20,30,34,28,24],backgroundColor:C.te+'99',borderRadius:4},
+  ]},options:{plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,suggestedMax:100}}}}));
+}
+
+function initResourcesCharts(C){
+  mkChart('cResStructure',mergeDefaults({type:'doughnut',data:{labels:['Частные пожертвования','Корпоративные средства','Фонды и гранты','Бюджет','Платные услуги','In-kind'],datasets:[{data:[24,18,28,30,8,6],backgroundColor:[C.pr,C.te,C.go,C.wn,C.ok,C.mu+'aa'],borderWidth:1,borderColor:C.sf}]},options:{plugins:{legend:{position:'right',labels:{font:{size:10}}}}}}));
+  mkChart('cResDyn',mergeDefaults({type:'line',data:{labels:['2022','2023','2024','Q1 2025','Q2 2025'],datasets:[{label:'Бюджетные средства',data:[48,52,58,60,62],borderColor:C.wn,backgroundColor:C.wn+'22',borderWidth:2.2,tension:.4,fill:true},{label:'Внебюджетные средства',data:[84,96,118,132,146],borderColor:C.te,backgroundColor:C.te+'22',borderWidth:2.2,tension:.4,fill:true},{label:'Leverage',data:[1.8,1.9,2.0,2.2,2.4],borderColor:C.ok,borderWidth:2,borderDash:[5,4],yAxisID:'y1',tension:.4,fill:false}]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{title:{display:true,text:'млрд ₽',color:C.mu,font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{color:C.mu,font:{size:10}}}}}}));
+  mkChart('cResFo',mergeDefaults({type:'bar',data:{labels:FO_NAMES,datasets:[{label:'₽ / жителя',data:[1240,1680,910,340,980,1040,760,620],backgroundColor:[C.pr,C.te,C.wn,C.er,C.go,C.ok,C.wn,C.er].map(c=>c+'cc'),borderRadius:4},{label:'Целевой ориентир',data:Array(8).fill(1000),type:'line',borderColor:C.ok+'88',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{plugins:{legend:{position:'bottom'}}}}));
+  mkChart('cResDrill',mergeDefaults({type:'bar',data:{labels:['Москва','Татарстан','СПб','Моск. обл.','Краснодар','Дагестан'],datasets:[{label:'Физлица',data:[24,19,22,16,14,6],backgroundColor:C.pr+'bb',borderRadius:4},{label:'Бизнес',data:[28,24,21,18,16,8],backgroundColor:C.te+'bb',borderRadius:4},{label:'Фонды/гранты',data:[18,26,20,19,23,12],backgroundColor:C.go+'bb',borderRadius:4},{label:'Бюджет',data:[30,31,37,47,47,74],backgroundColor:C.wn+'bb',borderRadius:4}]},options:{plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'% в структуре доходов',color:C.mu,font:{size:10}}}}}}));
+  mkChart('cResMix',mergeDefaults({type:'bar',data:{labels:['Москва','Татарстан','СПб','Моск. обл.','Краснодар','Дагестан'],datasets:[{label:'Индекс диверсификации',data:[4.2,3.8,3.7,3.1,2.9,1.4],backgroundColor:[C.ok+'cc',C.ok+'bb',C.pr+'bb',C.wn+'bb',C.wn+'99',C.er+'cc'],borderRadius:4},{label:'Доля крупнейшего источника, %',data:[34,39,42,48,51,73],type:'line',borderColor:C.er,borderWidth:2,tension:.35,fill:false}]},options:{plugins:{legend:{position:'bottom'}}}}));
+}
+
+function initImpactCharts(C){
+  mkChart('cImpAreas',mergeDefaults({type:'bar',data:{labels:['Соц. помощь','Здравоохранение','Образование','Экология','Культура','Семья и дети'],datasets:[{label:'Благополучатели, млн',data:[7.2,3.1,4.8,2.6,2.1,4.8],backgroundColor:[C.pr,C.te,C.go,C.ok,C.wn,C.pu+'bb'],borderRadius:4}]},options:{plugins:{legend:{display:false}}}}));
+  mkChart('cImpScatter',mergeDefaults({type:'scatter',data:{datasets:[{label:'Регионы',data:[{x:620,y:1900},{x:780,y:1460},{x:846,y:1680},{x:980,y:980},{x:1140,y:760},{x:1320,y:420}],backgroundColor:[C.ok,C.ok,C.pr,C.wn,C.wn,C.er],pointRadius:5}]},options:{plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Стоимость 1 благополучателя, ₽',color:C.mu,font:{size:10}}},y:{title:{display:true,text:'Благополучатели на 1000 жителей',color:C.mu,font:{size:10}}}}}}));
+  mkChart('cImpDyn',mergeDefaults({type:'line',data:{labels:['2022','2023','2024','Q1 2025','Q2 2025'],datasets:[{label:'Благополучатели, млн',data:[17.4,19.8,22.5,23.7,24.6],borderColor:C.ok,backgroundColor:C.ok+'22',borderWidth:2.2,tension:.4,fill:true},{label:'Доля проектов с измеренным эффектом, %',data:[8,11,17,23,28],borderColor:C.pr,backgroundColor:C.pr+'22',borderWidth:2.2,tension:.4,fill:true}]},options:{plugins:{legend:{position:'bottom'}}}}));
+  mkChart('cImpChannels',mergeDefaults({type:'doughnut',data:{labels:['НКО','Добро.Центры','ОО','Компании','Муниципальные партнёры'],datasets:[{data:[36,22,18,11,13],backgroundColor:[C.pr,C.te,C.go,C.wn,C.ok],borderColor:C.sf,borderWidth:1}]},options:{plugins:{legend:{position:'right',labels:{font:{size:10}}}}}}));
+}
+
+function initMunicipalCharts(C){
+  mkChart('cMunDist',mergeDefaults({type:'bar',data:{labels:['30–39','40–49','50–59','60–69','70+'],datasets:[{data:[3,4,8,6,3],backgroundColor:[C.er+'cc',C.wn+'88',C.wn+'cc',C.ok+'aa',C.ok+'dd'],borderRadius:5}]},options:{plugins:{legend:{display:false}}}}));
+  mkChart('cMunDrivers',mergeDefaults({type:'bar',data:{labels:['Retention','П3 живые НКО','Охват ДЦ','Внебюджет','Молодёжь 14–35','Господдержка'],datasets:[{label:'Вклад в просадку',data:[18,22,16,20,9,11],backgroundColor:[C.er,C.er,C.wn,C.te,C.pr,C.go],borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false}}}}));
+  mkChart('cMunRisk',mergeDefaults({type:'line',data:{labels:['Q1 2024','Q2 2024','Q3 2024','Q4 2024','Q1 2025','Q2 2025'],datasets:[{label:'Зарайск',data:[40,39,38,36,35,34],borderColor:C.er,borderWidth:2,tension:.35,fill:false},{label:'Шатура',data:[46,45,44,42,40,38],borderColor:C.wn,borderWidth:2,tension:.35,fill:false},{label:'Луховицы',data:[48,47,45,44,42,41],borderColor:C.te,borderWidth:2,tension:.35,fill:false}]},options:{plugins:{legend:{position:'bottom'}}}}));
+}
+
+function initForecastCharts(C){
+  mkChart('cFrcMain',mergeDefaults({type:'line',data:{labels:['2024','2025','2026','2027','2028','2029','2030'],datasets:[{label:'Базовый',data:[50,52,54,56,58,60,63],borderColor:C.pr,borderWidth:2.2,tension:.35,fill:false},{label:'Целевой',data:[50,52,56,59,62,65,69],borderColor:C.ok,borderWidth:2.2,tension:.35,fill:false},{label:'Стресс',data:[50,52,52,53,54,55,57],borderColor:C.er,borderWidth:2.2,tension:.35,fill:false},{label:'Цель 2030',data:[60,60,60,60,60,60,60],borderColor:C.go+'88',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{plugins:{legend:{position:'bottom'}}}}));
+  mkChart('cFrcDrivers',mergeDefaults({type:'bar',data:{labels:['П3','Retention','Внебюджет','П6 сельский охват','П7','П2'],datasets:[{label:'Недобор к целевому сценарию',data:[28,21,18,15,10,8],backgroundColor:[C.te,C.er,C.pr,C.wn,C.pu+'bb',C.go],borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false}}}}));
+  mkChart('cFrcBlocks',mergeDefaults({type:'line',data:{labels:['2025','2026','2027','2028','2029','2030'],datasets:[{label:'Люди — баз.',data:[45,47,49,51,53,55],borderColor:C.pr,borderWidth:2,tension:.35,fill:false},{label:'Орг. — баз.',data:[30,32,34,36,38,40],borderColor:C.te,borderWidth:2,tension:.35,fill:false},{label:'Инфра — баз.',data:[66,69,72,75,77,79],borderColor:C.go,borderWidth:2,tension:.35,fill:false},{label:'Люди — цел.',data:[45,49,53,57,60,63],borderColor:C.pr,borderWidth:2,borderDash:[5,4],tension:.35,fill:false},{label:'Орг. — цел.',data:[30,34,38,42,46,50],borderColor:C.te,borderWidth:2,borderDash:[5,4],tension:.35,fill:false},{label:'Инфра — цел.',data:[66,70,74,78,81,84],borderColor:C.go,borderWidth:2,borderDash:[5,4],tension:.35,fill:false}]},options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10}}}}}));
+}
+
+function initIndexesCharts(C){
+  mkChart('cIdxAllDyn',mergeDefaults({type:'line',data:{labels:YEARS,datasets:[
+    {label:'П1',data:[30,36,41,44,47],borderColor:C.pr,borderWidth:2,tension:.4,pointRadius:3,fill:false},
+    {label:'П2',data:[22,28,32,35,38],borderColor:C.te,borderWidth:2,tension:.4,pointRadius:3,fill:false},
+    {label:'П3',data:[22,22,20,19,18],borderColor:C.er,borderWidth:2,tension:.4,pointRadius:3,fill:false},
+    {label:'П4',data:[30,35,38,41,43],borderColor:C.go,borderWidth:2,tension:.4,pointRadius:3,fill:false},
+    {label:'П5',data:[42,48,54,58,60],borderColor:C.wn,borderWidth:2,tension:.4,pointRadius:3,fill:false},
+    {label:'П6',data:[54,60,66,70,72],borderColor:C.ok,borderWidth:2.5,tension:.4,pointRadius:3,fill:false},
+    {label:'П7',data:[14,16,20,23,26],borderColor:C.pu,borderWidth:2,tension:.4,pointRadius:3,fill:false},
+  ]},options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10}}}}}));
+
+  mkChart('cIdxProgress',mergeDefaults({type:'bar',data:{
+    labels:['П1','П2','П3','П4','П5','П6','П7'],
+    datasets:[
+      {label:'Текущий',data:[67,76,60,86,80,90,52],backgroundColor:[C.wn,C.wn,C.er,C.wn,C.ok,C.ok,C.er].map(c=>c+'cc'),borderRadius:4,borderSkipped:false},
+    ]
+  },options:{plugins:{legend:{display:false},annotation:{annotations:{line1:{type:'line',yMin:100,yMax:100,borderColor:C.ok,borderWidth:1.5,borderDash:[4,3]}}}},scales:{y:{title:{display:true,text:'% прогресса к цели 2030',color:C.mu,font:{size:10}},suggestedMax:110}}}}));
+}
+
+function initMethodologyCharts(C){
+  mkChart('cMethodWeights',mergeDefaults({type:'doughnut',data:{
+    labels:['П1 (25%)','П2 (15%)','П3 (10%)','П4 (15%)','П5 (10%)','П6 (15%)','П7 (10%)'],
+    datasets:[{data:[25,15,10,15,10,15,10],backgroundColor:[C.pr,C.te,C.er,C.go,C.wn,C.ok,C.pu+'cc'],borderWidth:1,borderColor:C.sf}]
+  },options:{plugins:{legend:{position:'right',labels:{font:{size:10}}}}}}));
+}
+
+// ============================
+// INIT
+// ============================
+window.addEventListener('DOMContentLoaded',()=>{
+  initStaticTables();
+  setTimeout(()=>initPageCharts('russia'),100);
+});
+</script>
+</body>
+</html>
