@@ -233,9 +233,15 @@ body.nav-open{overflow:hidden}
 .formula{overflow-x:auto}
 .formula .katex-display{margin:4px 0}
 .formula .katex{font-size:1.05em}
+#testban{background:#fdecec;border-bottom:1px solid #f3b9b9;color:#c81e1e;
+  font-weight:800;font-size:13px;letter-spacing:.02em;text-align:center;
+  padding:8px 14px;line-height:1.35}
+@media (max-width:860px){#testban{font-size:12px;padding:7px 10px}}
+@media print{#testban{display:block}}
 </style>
 </head>
 <body>
+<div id="testban">⚠ Тестовая версия. Наборы данных не являются финальными и могут меняться</div>
 <div id="app">
   <aside id="side">
     <div class="brand">
